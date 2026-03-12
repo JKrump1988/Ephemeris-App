@@ -1,53 +1,62 @@
-import { useEffect } from "react";
 import "@/App.css";
-import { BrowserRouter, Routes, Route } from "react-router-dom";
-import axios from "axios";
+import { ThemeProvider } from "next-themes";
+import { BrowserRouter, Navigate, Route, Routes } from "react-router-dom";
 
-const BACKEND_URL = process.env.REACT_APP_BACKEND_URL;
-const API = `${BACKEND_URL}/api`;
+import { AppShell } from "@/components/layout/AppShell";
+import { Toaster } from "@/components/ui/sonner";
+import { AuthProvider, useAuth } from "@/context/AuthContext";
+import AccountPage from "@/pages/AccountPage";
+import AuthPage from "@/pages/AuthPage";
+import DailyPage from "@/pages/DailyPage";
+import DashboardPage from "@/pages/DashboardPage";
+import LandingPage from "@/pages/LandingPage";
+import OnboardingPage from "@/pages/OnboardingPage";
+import ReadingPage from "@/pages/ReadingPage";
 
-const Home = () => {
-  const helloWorldApi = async () => {
-    try {
-      const response = await axios.get(`${API}/`);
-      console.log(response.data.message);
-    } catch (e) {
-      console.error(e, `errored out requesting / api`);
-    }
-  };
 
-  useEffect(() => {
-    helloWorldApi();
-  }, []);
+function ProtectedRoute({ children, requireChart = false }) {
+  const { isAuthenticated, loading, user } = useAuth();
 
-  return (
-    <div>
-      <header className="App-header">
-        <a
-          className="App-link"
-          href="https://emergent.sh"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <img src="https://avatars.githubusercontent.com/in/1201222?s=120&u=2686cf91179bbafbc7a71bfbc43004cf9ae1acea&v=4" />
-        </a>
-        <p className="mt-5">Building something incredible ~!</p>
-      </header>
-    </div>
-  );
-};
+  if (loading) {
+    return <div className="px-6 py-24 text-sm uppercase tracking-[0.24em] text-slate-400" data-testid="route-loading-state">Loading…</div>;
+  }
+
+  if (!isAuthenticated) {
+    return <Navigate replace to="/auth" />;
+  }
+
+  if (requireChart && !user?.has_chart) {
+    return <Navigate replace to="/onboarding" />;
+  }
+
+  return children;
+}
+
+
+function RoutedPage({ children, requireAuth = false, requireChart = false }) {
+  const content = requireAuth ? <ProtectedRoute requireChart={requireChart}>{children}</ProtectedRoute> : children;
+  return <AppShell>{content}</AppShell>;
+}
 
 function App() {
   return (
-    <div className="App">
-      <BrowserRouter>
-        <Routes>
-          <Route path="/" element={<Home />}>
-            <Route index element={<Home />} />
-          </Route>
-        </Routes>
-      </BrowserRouter>
-    </div>
+    <ThemeProvider attribute="class" defaultTheme="dark" forcedTheme="dark">
+      <AuthProvider>
+        <BrowserRouter>
+          <Routes>
+            <Route path="/" element={<RoutedPage><LandingPage /></RoutedPage>} />
+            <Route path="/auth" element={<RoutedPage><AuthPage /></RoutedPage>} />
+            <Route path="/onboarding" element={<RoutedPage requireAuth><OnboardingPage /></RoutedPage>} />
+            <Route path="/dashboard" element={<RoutedPage requireAuth requireChart><DashboardPage /></RoutedPage>} />
+            <Route path="/readings/:tier" element={<RoutedPage requireAuth requireChart><ReadingPage /></RoutedPage>} />
+            <Route path="/daily" element={<RoutedPage requireAuth requireChart><DailyPage /></RoutedPage>} />
+            <Route path="/account" element={<RoutedPage requireAuth requireChart><AccountPage /></RoutedPage>} />
+            <Route path="*" element={<Navigate replace to="/" />} />
+          </Routes>
+          <Toaster closeButton position="top-right" richColors />
+        </BrowserRouter>
+      </AuthProvider>
+    </ThemeProvider>
   );
 }
 
