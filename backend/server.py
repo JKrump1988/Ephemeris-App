@@ -116,7 +116,16 @@ async def location_search(
 
 @api_router.post("/chart", response_model=ChartResponse)
 async def create_or_update_chart(payload: ChartCreate, current_user: dict = Depends(get_current_user)):
-    chart_data = await asyncio.to_thread(generate_natal_chart, payload.model_dump())
+    prepared_chart_input = {
+        "birth_date": payload.birth_date.isoformat(),
+        "birth_time": payload.birth_time.strftime("%H:%M") if payload.birth_time else None,
+        "birth_time_known": payload.birth_time_known,
+        "location_name": payload.location_name,
+        "latitude": payload.latitude,
+        "longitude": payload.longitude,
+        "timezone": payload.timezone,
+    }
+    chart_data = await asyncio.to_thread(generate_natal_chart, prepared_chart_input)
     now = datetime.now(timezone.utc).isoformat()
     existing = await db.charts.find_one({"user_id": current_user["id"]}, {"_id": 0, "id": 1, "created_at": 1})
     chart_doc = {
@@ -124,8 +133,8 @@ async def create_or_update_chart(payload: ChartCreate, current_user: dict = Depe
         "user_id": current_user["id"],
         "created_at": existing["created_at"] if existing else now,
         "updated_at": now,
-        "birth_date": payload.birth_date,
-        "birth_time": payload.birth_time,
+        "birth_date": prepared_chart_input["birth_date"],
+        "birth_time": prepared_chart_input["birth_time"],
         "birth_time_known": payload.birth_time_known,
         "location_name": payload.location_name,
         "latitude": payload.latitude,

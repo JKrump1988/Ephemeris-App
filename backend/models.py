@@ -1,6 +1,7 @@
+from datetime import date, time
 from typing import List, Literal, Optional
 
-from pydantic import BaseModel, ConfigDict, EmailStr, Field
+from pydantic import BaseModel, ConfigDict, EmailStr, Field, model_validator
 
 
 TierName = Literal["snapshot", "profile", "blueprint", "master"]
@@ -54,13 +55,19 @@ class LocationSearchResponse(BaseModel):
 
 
 class ChartCreate(BaseModel):
-    birth_date: str
-    birth_time: Optional[str] = None
+    birth_date: date
+    birth_time: Optional[time] = None
     birth_time_known: bool = True
     location_name: str = Field(min_length=2, max_length=140)
     latitude: float
     longitude: float
     timezone: str
+
+    @model_validator(mode="after")
+    def validate_birth_time(self):
+        if self.birth_time_known and self.birth_time is None:
+            raise ValueError("birth_time is required when birth_time_known is true")
+        return self
 
 
 class TierAccess(BaseModel):
