@@ -152,6 +152,48 @@ export function NatalChartWheel({ chart, onExploreItem, astrologerEligible }) {
     return grouped;
   }, [placements]);
 
+  const displayPositions = useMemo(() => {
+    const sorted = [...placements].sort((first, second) => first.longitude - second.longitude);
+    const groups = [];
+    sorted.forEach((placement) => {
+      const previousGroup = groups[groups.length - 1];
+      if (!previousGroup) {
+        groups.push([placement]);
+        return;
+      }
+      const previousPlacement = previousGroup[previousGroup.length - 1];
+      const longitudeGap = Math.abs(previousPlacement.longitude - placement.longitude);
+      if (longitudeGap <= 7) {
+        previousGroup.push(placement);
+        return;
+      }
+      groups.push([placement]);
+    });
+
+    const positions = {};
+    groups.forEach((group) => {
+      if (group.length === 1) {
+        positions[group[0].name] = {
+          angle: group[0].longitude,
+          radius: planetRadius,
+        };
+        return;
+      }
+
+      group.forEach((placement, index) => {
+        const centeredIndex = index - (group.length - 1) / 2;
+        const angleOffset = centeredIndex * 6;
+        const radiusOffset = Math.abs(centeredIndex % 2) < 0.01 ? 0 : centeredIndex > 0 ? 18 : -18;
+        positions[placement.name] = {
+          angle: placement.longitude + angleOffset,
+          radius: planetRadius + radiusOffset,
+        };
+      });
+    });
+
+    return positions;
+  }, [placements, planetRadius]);
+
   const selectedHouseNumber = selectedItem?.kind === "house"
     ? selectedItem.houseNumber
     : selectedItem?.kind === "placement"
@@ -163,7 +205,8 @@ export function NatalChartWheel({ chart, onExploreItem, astrologerEligible }) {
     if (!selectedItem) return null;
     if (selectedItem.kind === "placement") {
       const placement = chart.placements[selectedItem.placementName];
-      return polarPoint(center, center, planetRadius + 34, placement.longitude);
+      const displayPlacement = displayPositions[selectedItem.placementName] || { angle: placement.longitude, radius: planetRadius };
+      return polarPoint(center, center, displayPlacement.radius + 34, displayPlacement.angle);
     }
     if (selectedItem.kind === "house") {
       const cusp = houseCusps[selectedItem.houseNumber - 1];
@@ -180,7 +223,7 @@ export function NatalChartWheel({ chart, onExploreItem, astrologerEligible }) {
       return { x: (start.x + end.x) / 2, y: (start.y + end.y) / 2 - 12 };
     }
     return null;
-  }, [aspectRadius, aspects, center, chart?.placements, houseCusps, houseLabelRadius, planetRadius, selectedItem]);
+  }, [aspectRadius, aspects, center, chart?.placements, displayPositions, houseCusps, houseLabelRadius, planetRadius, selectedItem]);
 
   const handleSelect = (item) => {
     setSelectedItem(item);
@@ -213,6 +256,7 @@ export function NatalChartWheel({ chart, onExploreItem, astrologerEligible }) {
 
         <div className="grid gap-8 xl:grid-cols-[1.15fr_0.85fr]" data-testid="natal-chart-wheel-layout">
           <div className="overflow-hidden border border-white/10 bg-black/25 p-4 md:p-6">
+            <div className="relative mx-auto max-w-[680px]" data-testid="natal-chart-wheel-interaction-layer">
             <svg className="h-auto w-full" data-testid="natal-chart-wheel-svg" viewBox={`0 0 ${size} ${size}`}>
               <defs>
                 <radialGradient id="wheelGlow" cx="50%" cy="50%" r="60%">
@@ -302,23 +346,15 @@ export function NatalChartWheel({ chart, onExploreItem, astrologerEligible }) {
               })}
 
               {placements.map((placement) => {
-                const point = polarPoint(center, center, planetRadius, placement.longitude);
+                const displayPlacement = displayPositions[placement.name] || { angle: placement.longitude, radius: planetRadius };
+                const point = polarPoint(center, center, displayPlacement.radius, displayPlacement.angle);
                 const selected = selectedItem?.kind === "placement" && selectedItem.placementName === placement.name;
                 const aspectRelated = selectedItem?.kind === "aspect" && highlightedPlacements.has(placement.name);
                 return (
                   <g key={placement.name} style={{ cursor: "pointer" }}>
-                    <circle
-                      cx={point.x}
-                      cy={point.y}
-                      data-testid={`natal-chart-placement-${placement.name.toLowerCase().replace(/\s+/g, "-")}`}
-                      fill="rgba(255,255,255,0.001)"
-                      onClick={() => handleSelect(buildPlacementItem(placement))}
-                      pointerEvents="all"
-                      r="24"
-                    />
                     {selected || aspectRelated ? <circle cx={point.x} cy={point.y} fill="none" r="20" stroke="rgba(255,255,255,0.95)" strokeWidth="1.7" /> : null}
-                    <circle cx={point.x} cy={point.y} fill={selected ? "rgba(212,175,55,0.18)" : "#050508"} onClick={() => handleSelect(buildPlacementItem(placement))} r="14" stroke={selected || aspectRelated ? "rgba(255,255,255,0.98)" : "rgba(212,175,55,0.75)"} strokeWidth={selected || aspectRelated ? "1.8" : "1.2"} />
-                    <text fill="rgba(248,250,252,0.95)" fontFamily="JetBrains Mono, monospace" fontSize="10" textAnchor="middle" x={point.x} y={point.y + 3}>{PLANET_ABBREVIATIONS[placement.name] || placement.name.slice(0, 2)}</text>
+                    <circle cx={point.x} cy={point.y} fill={selected ? "rgba(212,175,55,0.18)" : "#050508"} r="14" stroke={selected || aspectRelated ? "rgba(255,255,255,0.98)" : "rgba(212,175,55,0.75)"} strokeWidth={selected || aspectRelated ? "1.8" : "1.2"} />
+                    <text fill="rgba(248,250,252,0.95)" fontFamily="JetBrains Mono, monospace" fontSize="10" pointerEvents="none" textAnchor="middle" x={point.x} y={point.y + 3}>{PLANET_ABBREVIATIONS[placement.name] || placement.name.slice(0, 2)}</text>
                   </g>
                 );
               })}
@@ -332,6 +368,28 @@ export function NatalChartWheel({ chart, onExploreItem, astrologerEligible }) {
 
               <circle cx={center} cy={center} fill="#050508" r="18" stroke="rgba(255,255,255,0.08)" strokeWidth="1" />
             </svg>
+
+            <div className="pointer-events-none absolute inset-0" data-testid="natal-chart-placement-hitareas">
+              {placements.map((placement) => {
+                const displayPlacement = displayPositions[placement.name] || { angle: placement.longitude, radius: planetRadius };
+                const point = polarPoint(center, center, displayPlacement.radius, displayPlacement.angle);
+                const selected = selectedItem?.kind === "placement" && selectedItem.placementName === placement.name;
+                return (
+                  <button
+                    aria-label={`Open ${placement.name} placement`}
+                    className={`pointer-events-auto absolute h-14 w-14 -translate-x-1/2 -translate-y-1/2 rounded-full ${selected ? "ring-2 ring-white/80" : ""}`}
+                    data-testid={`natal-chart-placement-${placement.name.toLowerCase().replace(/\s+/g, "-")}`}
+                    key={`placement-hitarea-${placement.name}`}
+                    onClick={() => handleSelect(buildPlacementItem(placement))}
+                    style={{ left: `${(point.x / size) * 100}%`, top: `${(point.y / size) * 100}%` }}
+                    type="button"
+                  >
+                    <span className="sr-only">{placement.name}</span>
+                  </button>
+                );
+              })}
+            </div>
+            </div>
 
             {selectedItem ? (
               <div className="mt-5 border border-primary/25 bg-primary/10 p-4" data-testid="natal-chart-selected-detail-card">
