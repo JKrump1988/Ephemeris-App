@@ -25,15 +25,15 @@ Required modules from the brief:
 - Visual direction: editorial cosmic with bold typography
 
 ## Architecture Decisions
-- Frontend: React app with routed pages for landing, auth, onboarding, dashboard, tier readings, daily insights, and account
+- Frontend: React app with routed pages for landing, auth, onboarding, dashboard, tier readings, daily insights, academy, and account
 - Backend: FastAPI with modular files for auth, astrology engine, interpretation engine, models, and platform content
 - Database: MongoDB for users and saved chart documents via Motor
 - Auth: JWT bearer tokens with bcrypt hashing and email/password flows
 - Astrology engine: Swiss ephemeris via pyswisseph using Moshier ephemeris flags, timezone-aware UTC conversion, house calculation, aspects, nodes, and transits
 - Location handling: OpenStreetMap Nominatim search plus timezonefinder-derived timezone resolution
 - Interpretation engine: deterministic, psychologically framed text generation from placements, aspects, houses, and transit data
-- Monetization-ready UX: tier access map with free Snapshot and preview states for deeper locked tiers
-- Future-ready structure: backend route exposing AI astrologer and academy architecture notes for later modules
+- Monetization-ready UX: tier access map with free Snapshot, Stripe checkout entry points, progressive unlock logic, and payment status polling
+- Future-ready structure: backend route exposing AI astrologer and academy architecture notes for later modules plus an Academy catalog shell with course/module/lesson data
 
 ## User Personas
 1. Astrology-curious user seeking a refined first chart reading
@@ -63,42 +63,51 @@ Required modules from the brief:
 - Added stronger API validation for chart date/time payloads after test review
 - Completed self-testing plus automated backend/frontend validation; all tested flows passed
 
+### 2026-03-13
+- Added Stripe checkout integration for progressive premium tier unlocks so Profile, Blueprint, and Master can be purchased with server-defined pricing and saved payment transactions
+- Implemented billing catalog, checkout session creation, checkout status sync, webhook handling, and entitlement upgrade logic that preserves the layered reading model
+- Added a visual natal chart wheel on the dashboard showing zodiac ring, house cusps, aspect geometry, and major placement markers
+- Added account-level chart editing so users can update birth details, overwrite the saved chart, and regenerate readings immediately
+- Improved the dashboard with quick-access cards for Snapshot, Daily, Premium tiers, Academy, and stronger premium storytelling for locked layers
+- Built the first Ephemeral Academy section with future-ready course catalog, module structure, and mixed video/text lesson placeholders
+- Added regression coverage for billing, academy, and chart-update flows; backend and frontend validation passed
+
 ## Prioritized Backlog
 ### P0
-- Add real subscription/payment integration for Profile, Blueprint, and Master unlocks
-- Add user-facing chart editing/regeneration management with historical chart versions
+- Add webhook hardening and stronger post-payment return UX polish for Stripe success states
+- Add user-facing chart editing/regeneration history with versioning instead of overwrite-only behavior
 - Add stronger backend error states and rate limiting around public location search
 
 ### P1
-- Add richer chart visualizations (wheel chart, aspect grid, house wheel)
+- Add richer chart visualizations beyond the current static wheel (interactive tooltips, aspect grid, deeper wheel controls)
 - Add AI Astrologer chat using saved natal chart context and future OpenAI integration
 - Add subscription-ready daily insight history and notification preferences
 - Add better accessibility polish for keyboard-only navigation and reduced-motion preferences
 
 ### P2
-- Build Ephemeral Academy content models and embedded lesson experience
+- Build full Ephemeral Academy playback, progress tracking, and embedded lesson experience
 - Add multiple saved charts / relationship or transit comparison charts
 - Add analytics for tier conversion and reading engagement depth
 - Add localization / multi-language astrology copy support
 
 ## Remaining Features by Priority
 ### P0 Remaining
-- Payment and subscription enforcement
-- Full unlock purchase flow and entitlement management
-- Better chart management and editing UX
+- Stronger Stripe success/cancel return handling and payment ops observability
+- Chart history/version management
+- Better rate limiting and resilience around external geocoding/search dependencies
 
 ### P1 Remaining
 - AI Astrologer chat layer
-- Rich chart visual components
+- More interactive chart visual components
 - Daily history / notifications / retention features
 
 ### P2 Remaining
-- Academy / LMS integration
+- Academy / LMS integration with playback and progress
 - Multi-chart experiences
 - Admin and analytics tooling
 
 ## Next Tasks List
-- Integrate Stripe or preferred payments to convert tier previews into true unlocks
-- Add a visual natal chart wheel and aspect matrix to complement the editorial readings
+- Polish Stripe success-state UX and strengthen payment lifecycle observability
+- Expand the natal wheel into interactive chart exploration with aspect tooltips and sign/house detail overlays
 - Introduce AI astrologer chat powered by saved chart context and safety-checked prompts
-- Add account controls for updating birth data and regenerating readings cleanly
+- Add chart history so users can compare revised birth data without losing the previous version
