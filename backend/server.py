@@ -258,6 +258,11 @@ async def read_academy_catalog(current_user: dict = Depends(get_current_user)):
 
 @api_router.get("/ai-astrologer/session/{session_id}", response_model=AstrologerSessionResponse)
 async def read_astrologer_session(session_id: str, current_user: dict = Depends(get_current_user)):
+    if not can_access_ai(current_user["subscription_tier"]):
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="AI Astrologer is available for Blueprint and Master tiers.",
+        )
     session_doc = await db.ai_astrologer_sessions.find_one(
         {"id": session_id, "user_id": current_user["id"]},
         {"_id": 0},

@@ -71,6 +71,10 @@ Required modules from the brief:
 - Improved the dashboard with quick-access cards for Snapshot, Daily, Premium tiers, Academy, and stronger premium storytelling for locked layers
 - Built the first Ephemeral Academy section with future-ready course catalog, module structure, and mixed video/text lesson placeholders
 - Added regression coverage for billing, academy, and chart-update flows; backend and frontend validation passed
+- Added AI Astrologer backend integration using GPT-5.2 through the Emergent universal key, with chart-aware prompting grounded in saved placements, aspects, houses, and current transits
+- Implemented AI tier gating so only Blueprint and Master users can access the astrologer conversation endpoints and UI
+- Built a conversational AI panel inside the dashboard plus a dedicated full astrologer page that shares session-only chat memory for the current visit
+- Added backend session storage for astrologer conversations, suggested prompts, and regression coverage for AI chat flows; backend and frontend validation passed
 
 ## Prioritized Backlog
 ### P0
@@ -80,7 +84,7 @@ Required modules from the brief:
 
 ### P1
 - Add richer chart visualizations beyond the current static wheel (interactive tooltips, aspect grid, deeper wheel controls)
-- Add AI Astrologer chat using saved natal chart context and future OpenAI integration
+- Add saved AI chat history and richer astrologer tools beyond the current session-only implementation
 - Add subscription-ready daily insight history and notification preferences
 - Add better accessibility polish for keyboard-only navigation and reduced-motion preferences
 
@@ -97,7 +101,7 @@ Required modules from the brief:
 - Better rate limiting and resilience around external geocoding/search dependencies
 
 ### P1 Remaining
-- AI Astrologer chat layer
+- Saved AI Astrologer history, conversation controls, and deeper chart exploration tools
 - More interactive chart visual components
 - Daily history / notifications / retention features
 
@@ -109,5 +113,5 @@ Required modules from the brief:
 ## Next Tasks List
 - Polish Stripe success-state UX and strengthen payment lifecycle observability
 - Expand the natal wheel into interactive chart exploration with aspect tooltips and sign/house detail overlays
-- Introduce AI astrologer chat powered by saved chart context and safety-checked prompts
+- Add saved AI astrologer history, follow-up threading, and deeper context tools around previous answers
 - Add chart history so users can compare revised birth data without losing the previous version
