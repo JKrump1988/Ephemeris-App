@@ -198,3 +198,29 @@ class AcademyCatalogResponse(BaseModel):
     title: str
     description: str
     courses: List[AcademyCourse]
+
+
+class AstrologerChatMessage(BaseModel):
+    role: Literal["user", "assistant"]
+    content: str
+    created_at: str
+
+
+class AstrologerSessionResponse(BaseModel):
+    session_id: str
+    messages: List[AstrologerChatMessage]
+    eligible: bool
+    current_tier: TierName
+    suggested_prompts: List[str]
+
+
+class AstrologerMessageRequest(BaseModel):
+    session_id: str = Field(min_length=4, max_length=120)
+    message: str = Field(min_length=2, max_length=2000)
+
+
+class AstrologerMessageResponse(BaseModel):
+    session_id: str
+    reply: str
+    messages: List[AstrologerChatMessage]
+    current_tier: TierName

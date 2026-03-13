@@ -10,6 +10,7 @@ const privateLinks = [
   { to: "/dashboard", label: "Dashboard" },
   { to: "/readings/snapshot", label: "Readings" },
   { to: "/daily", label: "Daily" },
+  { to: "/astrologer", label: "Astrologer" },
   { to: "/academy", label: "Academy" },
   { to: "/account", label: "Account" },
 ];

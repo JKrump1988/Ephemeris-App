@@ -11,11 +11,15 @@ from motor.motor_asyncio import AsyncIOMotorClient
 import logging
 
 from academy_content import ACADEMY_CATALOG
+from ai_astrologer import can_access_ai, create_session_document, generate_astrologer_reply, serialise_session
 from auth_utils import authenticate_user, create_access_token, get_current_user, get_password_hash, set_database
 from astrology_engine import generate_natal_chart, search_locations
 from interpretation_engine import build_daily_insight, build_reading
 from models import (
     AcademyCatalogResponse,
+    AstrologerMessageRequest,
+    AstrologerMessageResponse,
+    AstrologerSessionResponse,
     BillingCatalogResponse,
     ChartCreate,
     ChartResponse,
@@ -250,6 +254,71 @@ async def stripe_webhook(request: Request):
 async def read_academy_catalog(current_user: dict = Depends(get_current_user)):
     _ = current_user
     return ACADEMY_CATALOG
+
+
+@api_router.get("/ai-astrologer/session/{session_id}", response_model=AstrologerSessionResponse)
+async def read_astrologer_session(session_id: str, current_user: dict = Depends(get_current_user)):
+    session_doc = await db.ai_astrologer_sessions.find_one(
+        {"id": session_id, "user_id": current_user["id"]},
+        {"_id": 0},
+    )
+    if not session_doc:
+        session_doc = create_session_document(current_user["id"], session_id)
+        await db.ai_astrologer_sessions.insert_one(session_doc.copy())
+    return serialise_session(session_doc, current_user["subscription_tier"])
+
+
+@api_router.post("/ai-astrologer/message", response_model=AstrologerMessageResponse)
+async def send_astrologer_message(payload: AstrologerMessageRequest, current_user: dict = Depends(get_current_user)):
+    if not can_access_ai(current_user["subscription_tier"]):
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="AI Astrologer is available for Blueprint and Master tiers.",
+        )
+
+    chart_doc = await get_chart_for_user(current_user["id"])
+    session_doc = await db.ai_astrologer_sessions.find_one(
+        {"id": payload.session_id, "user_id": current_user["id"]},
+        {"_id": 0},
+    )
+    if not session_doc:
+        session_doc = create_session_document(current_user["id"], payload.session_id)
+
+    user_message = {
+        "role": "user",
+        "content": payload.message,
+        "created_at": datetime.now(timezone.utc).isoformat(),
+    }
+    session_messages = session_doc.get("messages", [])
+    reply = await generate_astrologer_reply(
+        current_user,
+        chart_doc["chart"],
+        session_messages,
+        payload.session_id,
+        payload.message,
+    )
+    assistant_message = {
+        "role": "assistant",
+        "content": reply,
+        "created_at": datetime.now(timezone.utc).isoformat(),
+    }
+    updated_messages = [*session_messages, user_message, assistant_message]
+    now = datetime.now(timezone.utc).isoformat()
+    session_doc.update({"messages": updated_messages, "updated_at": now})
+    if not session_doc.get("created_at"):
+        session_doc["created_at"] = now
+    await db.ai_astrologer_sessions.update_one(
+        {"id": payload.session_id, "user_id": current_user["id"]},
+        {"$set": session_doc},
+        upsert=True,
+    )
+
+    return {
+        "session_id": payload.session_id,
+        "reply": reply,
+        "messages": updated_messages,
+        "current_tier": current_user["subscription_tier"],
+    }
 
 # Include the router in the main app
 app.include_router(api_router)

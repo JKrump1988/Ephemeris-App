@@ -3,6 +3,7 @@ import { useNavigate, useSearchParams } from "react-router-dom";
 import { ArrowRight, BookOpenText, LockKeyhole, Sparkles, SunMoon } from "lucide-react";
 import { toast } from "sonner";
 
+import { AstrologerChatPanel } from "@/components/common/AstrologerChatPanel";
 import { NatalChartWheel } from "@/components/common/NatalChartWheel";
 import { TierCard } from "@/components/common/TierCard";
 import { Button } from "@/components/ui/button";
@@ -218,6 +219,8 @@ export default function DashboardPage() {
       </section>
 
       <NatalChartWheel chart={chart.chart} />
+
+      <AstrologerChatPanel variant="dashboard" />
 
       <section className="grid gap-6 lg:grid-cols-[0.95fr_1.05fr]" data-testid="dashboard-insight-grid">
         <Card className="border border-white/10 bg-white/5 backdrop-blur-xl" data-testid="dashboard-placement-card">
