@@ -182,8 +182,8 @@ export function NatalChartWheel({ chart, onExploreItem, astrologerEligible }) {
 
       group.forEach((placement, index) => {
         const centeredIndex = index - (group.length - 1) / 2;
-        const angleOffset = centeredIndex * 6;
-        const radiusOffset = Math.abs(centeredIndex % 2) < 0.01 ? 0 : centeredIndex > 0 ? 18 : -18;
+        const angleOffset = centeredIndex * 9;
+        const radiusOffset = Math.abs(centeredIndex % 2) < 0.01 ? 0 : centeredIndex > 0 ? 24 : -24;
         positions[placement.name] = {
           angle: placement.longitude + angleOffset,
           radius: planetRadius + radiusOffset,
@@ -377,7 +377,7 @@ export function NatalChartWheel({ chart, onExploreItem, astrologerEligible }) {
                 return (
                   <button
                     aria-label={`Open ${placement.name} placement`}
-                    className={`pointer-events-auto absolute h-14 w-14 -translate-x-1/2 -translate-y-1/2 rounded-full ${selected ? "ring-2 ring-white/80" : ""}`}
+                    className={`pointer-events-auto absolute h-9 w-9 -translate-x-1/2 -translate-y-1/2 rounded-full md:h-14 md:w-14 ${selected ? "ring-2 ring-white/80" : ""}`}
                     data-testid={`natal-chart-placement-${placement.name.toLowerCase().replace(/\s+/g, "-")}`}
                     key={`placement-hitarea-${placement.name}`}
                     onClick={() => handleSelect(buildPlacementItem(placement))}
