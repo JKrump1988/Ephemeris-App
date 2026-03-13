@@ -75,6 +75,8 @@ Required modules from the brief:
 - Implemented AI tier gating so only Blueprint and Master users can access the astrologer conversation endpoints and UI
 - Built a conversational AI panel inside the dashboard plus a dedicated full astrologer page that shares session-only chat memory for the current visit
 - Added backend session storage for astrologer conversations, suggested prompts, and regression coverage for AI chat flows; backend and frontend validation passed
+- Upgraded the natal chart into an interactive exploration tool so users can click planets, houses, and aspects and route that selection into the AI Astrologer
+- Added chart-to-chat context priming with suggested questions, active focus cards, mobile quick-ask routing to the dedicated astrologer page, and responsive clustered-hit-target fixes for reliable desktop/mobile interaction
 
 ## Prioritized Backlog
 ### P0
@@ -102,7 +104,7 @@ Required modules from the brief:
 
 ### P1 Remaining
 - Saved AI Astrologer history, conversation controls, and deeper chart exploration tools
-- More interactive chart visual components
+- More interactive chart visual components beyond current click-to-chat flow (tooltips, drag/explore states, expanded aspect matrix)
 - Daily history / notifications / retention features
 
 ### P2 Remaining
@@ -112,6 +114,6 @@ Required modules from the brief:
 
 ## Next Tasks List
 - Polish Stripe success-state UX and strengthen payment lifecycle observability
-- Expand the natal wheel into interactive chart exploration with aspect tooltips and sign/house detail overlays
+- Expand the natal wheel further with aspect tooltips, deeper sign/house overlays, and richer chart education cues
 - Add saved AI astrologer history, follow-up threading, and deeper context tools around previous answers
 - Add chart history so users can compare revised birth data without losing the previous version
