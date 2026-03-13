@@ -4,18 +4,24 @@ import uuid
 from datetime import datetime, timezone
 from pathlib import Path
 
-from fastapi import APIRouter, Depends, FastAPI, HTTPException, Query, status
+from fastapi import APIRouter, Depends, FastAPI, HTTPException, Query, Request, status
 from dotenv import load_dotenv
 from starlette.middleware.cors import CORSMiddleware
 from motor.motor_asyncio import AsyncIOMotorClient
 import logging
 
+from academy_content import ACADEMY_CATALOG
 from auth_utils import authenticate_user, create_access_token, get_current_user, get_password_hash, set_database
 from astrology_engine import generate_natal_chart, search_locations
 from interpretation_engine import build_daily_insight, build_reading
 from models import (
+    AcademyCatalogResponse,
+    BillingCatalogResponse,
     ChartCreate,
     ChartResponse,
+    CheckoutCreateRequest,
+    CheckoutStartResponse,
+    CheckoutStatusSyncResponse,
     DailyInsightResponse,
     LocationSearchResponse,
     LoginRequest,
@@ -25,6 +31,7 @@ from models import (
     UserCreate,
     UserPublic,
 )
+from payments import build_billing_catalog, create_checkout_session_for_tier, get_checkout_client, process_webhook_event, sync_checkout_status
 from platform_content import PLATFORM_OVERVIEW, build_tier_access
 
 
@@ -152,12 +159,19 @@ async def create_or_update_chart(payload: ChartCreate, current_user: dict = Depe
         "approximate_time_used": chart_data["meta"]["approximate_time_used"],
         "note": chart_data["meta"]["note"],
         "location_name": chart_doc["location_name"],
+        "latitude": chart_doc["latitude"],
+        "longitude": chart_doc["longitude"],
         "timezone": chart_doc["timezone"],
         "birth_date": chart_doc["birth_date"],
         "birth_time": chart_doc["birth_time"],
         "tier_access": build_tier_access(current_user["subscription_tier"]),
         "chart": chart_doc["chart"],
     }
+
+
+@api_router.put("/chart/current", response_model=ChartResponse)
+async def update_current_chart(payload: ChartCreate, current_user: dict = Depends(get_current_user)):
+    return await create_or_update_chart(payload, current_user)
 
 
 @api_router.get("/chart/current", response_model=ChartResponse)
@@ -171,6 +185,8 @@ async def read_current_chart(current_user: dict = Depends(get_current_user)):
         "approximate_time_used": chart["meta"]["approximate_time_used"],
         "note": chart["meta"]["note"],
         "location_name": chart_doc["location_name"],
+        "latitude": chart_doc["latitude"],
+        "longitude": chart_doc["longitude"],
         "timezone": chart_doc["timezone"],
         "birth_date": chart_doc["birth_date"],
         "birth_time": chart_doc["birth_time"],
@@ -196,6 +212,44 @@ async def read_daily_insight(current_user: dict = Depends(get_current_user)):
 @api_router.get("/platform/overview", response_model=PlatformOverviewResponse)
 async def read_platform_overview():
     return PLATFORM_OVERVIEW
+
+
+@api_router.get("/billing/tiers", response_model=BillingCatalogResponse)
+async def read_billing_tiers(current_user: dict = Depends(get_current_user)):
+    return {
+        "current_tier": current_user["subscription_tier"],
+        "tiers": build_billing_catalog(current_user["subscription_tier"]),
+    }
+
+
+@api_router.post("/billing/checkout/session", response_model=CheckoutStartResponse)
+async def create_checkout_session(
+    payload: CheckoutCreateRequest,
+    request: Request,
+    current_user: dict = Depends(get_current_user),
+):
+    session, transaction = await create_checkout_session_for_tier(request, payload.origin_url, payload.tier, current_user)
+    await db.payment_transactions.insert_one(transaction.copy())
+    return {"url": session.url, "session_id": session.session_id}
+
+
+@api_router.get("/billing/checkout/status/{session_id}", response_model=CheckoutStatusSyncResponse)
+async def read_checkout_status(session_id: str, request: Request, current_user: dict = Depends(get_current_user)):
+    return await sync_checkout_status(db, request, session_id, current_user)
+
+
+@api_router.post("/webhook/stripe")
+async def stripe_webhook(request: Request):
+    payload_bytes = await request.body()
+    webhook_response = await get_checkout_client(request).handle_webhook(payload_bytes, request.headers.get("Stripe-Signature"))
+    await process_webhook_event(db, webhook_response.model_dump())
+    return {"received": True, "event_type": webhook_response.event_type}
+
+
+@api_router.get("/academy/catalog", response_model=AcademyCatalogResponse)
+async def read_academy_catalog(current_user: dict = Depends(get_current_user)):
+    _ = current_user
+    return ACADEMY_CATALOG
 
 # Include the router in the main app
 app.include_router(api_router)

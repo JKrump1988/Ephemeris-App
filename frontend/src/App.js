@@ -6,6 +6,7 @@ import { AppShell } from "@/components/layout/AppShell";
 import { Toaster } from "@/components/ui/sonner";
 import { AuthProvider, useAuth } from "@/context/AuthContext";
 import AccountPage from "@/pages/AccountPage";
+import AcademyPage from "@/pages/AcademyPage";
 import AuthPage from "@/pages/AuthPage";
 import DailyPage from "@/pages/DailyPage";
 import DashboardPage from "@/pages/DashboardPage";
@@ -50,6 +51,7 @@ function App() {
             <Route path="/dashboard" element={<RoutedPage requireAuth requireChart><DashboardPage /></RoutedPage>} />
             <Route path="/readings/:tier" element={<RoutedPage requireAuth requireChart><ReadingPage /></RoutedPage>} />
             <Route path="/daily" element={<RoutedPage requireAuth requireChart><DailyPage /></RoutedPage>} />
+            <Route path="/academy" element={<RoutedPage requireAuth requireChart><AcademyPage /></RoutedPage>} />
             <Route path="/account" element={<RoutedPage requireAuth requireChart><AccountPage /></RoutedPage>} />
             <Route path="*" element={<Navigate replace to="/" />} />
           </Routes>

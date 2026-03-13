@@ -2,6 +2,8 @@ import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { BookOpen, Bot, LockKeyhole, UserRound } from "lucide-react";
 
+import { BirthChartEditor } from "@/components/common/BirthChartEditor";
+import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { useAuth } from "@/context/AuthContext";
 import { api } from "@/lib/api";
@@ -66,7 +68,12 @@ export default function AccountPage() {
 
         <Card className="border border-white/10 bg-white/5 backdrop-blur-xl" data-testid="account-birth-context-card">
           <CardContent className="space-y-5 p-7">
-            <p className="text-[11px] uppercase tracking-[0.28em] text-slate-400">Saved chart</p>
+            <div className="flex flex-wrap items-center justify-between gap-4">
+              <p className="text-[11px] uppercase tracking-[0.28em] text-slate-400">Saved chart</p>
+              <Button className="border border-white/10 bg-white/5 px-4 py-3 text-xs uppercase tracking-[0.24em] text-white hover:bg-white/10" data-testid="account-open-academy-button" onClick={() => navigate("/academy")} variant="ghost">
+                Open Academy
+              </Button>
+            </div>
             <div className="grid gap-4 md:grid-cols-2">
               <div className="border border-white/10 bg-black/25 p-4" data-testid="account-birth-date-card">
                 <p className="text-[11px] uppercase tracking-[0.24em] text-slate-500">Birth date</p>
@@ -130,6 +137,8 @@ export default function AccountPage() {
           </Card>
         </div>
       </section>
+
+      <BirthChartEditor chart={chart} onUpdated={setChart} />
     </div>
   );
 }

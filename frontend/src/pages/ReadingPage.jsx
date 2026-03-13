@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { LockKeyhole, Sparkles } from "lucide-react";
+import { toast } from "sonner";
 
 import { ReadingSection } from "@/components/common/ReadingSection";
 import { Button } from "@/components/ui/button";
@@ -13,13 +14,15 @@ export default function ReadingPage() {
   const { tier } = useParams();
   const [reading, setReading] = useState(null);
   const [chart, setChart] = useState(null);
+  const [billing, setBilling] = useState(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    Promise.all([api.get(`/readings/${tier}`), api.get("/chart/current")])
-      .then(([readingResponse, chartResponse]) => {
+    Promise.all([api.get(`/readings/${tier}`), api.get("/chart/current"), api.get("/billing/tiers")])
+      .then(([readingResponse, chartResponse, billingResponse]) => {
         setReading(readingResponse.data);
         setChart(chartResponse.data);
+        setBilling(billingResponse.data);
       })
       .catch((error) => {
         if (error?.response?.status === 404) {
@@ -30,6 +33,19 @@ export default function ReadingPage() {
   }, [navigate, tier]);
 
   const activeTier = useMemo(() => chart?.tier_access?.find((item) => item.tier === tier), [chart, tier]);
+  const billingTier = useMemo(() => billing?.tiers?.find((item) => item.tier === tier), [billing, tier]);
+
+  const startCheckout = async () => {
+    try {
+      const response = await api.post("/billing/checkout/session", {
+        tier,
+        origin_url: window.location.origin,
+      });
+      window.location.href = response.data.url;
+    } catch (error) {
+      toast.error(error?.response?.data?.detail || "Unable to start Stripe checkout right now.");
+    }
+  };
 
   if (loading) {
     return <div className="py-24 text-sm uppercase tracking-[0.24em] text-slate-400" data-testid="reading-loading-state">Loading your reading…</div>;
@@ -78,6 +94,16 @@ export default function ReadingPage() {
           <CardContent className="space-y-4 p-7">
             <p className="text-[11px] uppercase tracking-[0.28em] text-primary">Preview mode</p>
             <p className="text-sm leading-7 text-slate-100">This page is showing a preview of the next layer. The locked topics below outline what this tier expands into.</p>
+            {billingTier ? (
+              <div className="border border-primary/20 bg-black/25 px-4 py-4" data-testid="reading-locked-tier-pricing">
+                <p className="text-[11px] uppercase tracking-[0.22em] text-primary">Stripe unlock</p>
+                <p className="mt-2 font-display text-3xl text-white">{new Intl.NumberFormat("en-US", { style: "currency", currency: billingTier.currency.toUpperCase() }).format(billingTier.amount)}</p>
+                <p className="mt-2 text-sm leading-7 text-slate-300">Buying {billingTier.label} includes every layer beneath it, and after payment you return to the dashboard with refreshed tier access.</p>
+                <Button className="mt-4 border border-primary/45 bg-primary px-5 py-3 text-xs uppercase tracking-[0.24em] text-black hover:bg-primary/90" data-testid="reading-unlock-tier-button" onClick={startCheckout}>
+                  Unlock with Stripe
+                </Button>
+              </div>
+            ) : null}
             <div className="grid gap-3 md:grid-cols-2" data-testid="reading-locked-topics-list">
               {reading.locked_topics.map((topic) => (
                 <div className="border border-primary/20 bg-black/25 px-4 py-4 text-sm text-slate-100" key={topic}>{topic}</div>

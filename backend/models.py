@@ -85,6 +85,8 @@ class ChartResponse(BaseModel):
     approximate_time_used: bool
     note: str
     location_name: str
+    latitude: float
+    longitude: float
     timezone: str
     birth_date: str
     birth_time: Optional[str]
@@ -127,3 +129,72 @@ class PlatformOverviewResponse(BaseModel):
     ai_astrologer_architecture: List[str]
     future_course_integration_structure: List[str]
     safety_framework: List[str]
+
+
+class BillingTierOption(BaseModel):
+    tier: TierName
+    label: str
+    amount: float
+    currency: str
+    accessible: bool
+    premium_story: str
+    includes: List[str]
+
+
+class BillingCatalogResponse(BaseModel):
+    current_tier: TierName
+    tiers: List[BillingTierOption]
+
+
+class CheckoutCreateRequest(BaseModel):
+    tier: Literal["profile", "blueprint", "master"]
+    origin_url: str
+
+
+class CheckoutStartResponse(BaseModel):
+    url: str
+    session_id: str
+
+
+class CheckoutStatusSyncResponse(BaseModel):
+    session_id: str
+    status: str
+    payment_status: str
+    current_tier: TierName
+    target_tier: TierName
+    amount_total: int
+    currency: str
+    unlocked: bool
+    message: str
+
+
+class AcademyLesson(BaseModel):
+    id: str
+    title: str
+    lesson_type: Literal["video", "text"]
+    duration: str
+    locked: bool
+
+
+class AcademyModule(BaseModel):
+    id: str
+    title: str
+    summary: str
+    locked: bool
+    lessons: List[AcademyLesson]
+
+
+class AcademyCourse(BaseModel):
+    id: str
+    title: str
+    description: str
+    level: str
+    locked: bool
+    cover_theme: str
+    modules: List[AcademyModule]
+
+
+class AcademyCatalogResponse(BaseModel):
+    title: str
+    description: str
+    courses: List[AcademyCourse]
