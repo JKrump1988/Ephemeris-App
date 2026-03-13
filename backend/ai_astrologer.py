@@ -98,7 +98,28 @@ def build_system_message(user: dict, chart: dict) -> str:
     )
 
 
-async def generate_astrologer_reply(user: dict, chart: dict, session_messages: list[dict], session_id: str, prompt: str) -> str:
+def build_focus_prefix(focus_context: dict | None) -> str:
+    if not focus_context:
+        return ""
+    title = focus_context.get("title", "Selected chart point")
+    kind = focus_context.get("kind", "chart item")
+    summary = focus_context.get("summary", "")
+    return (
+        "The user has clicked an interactive natal chart element and wants this response anchored to it. "
+        f"Selected {kind}: {title}. "
+        f"Context summary: {summary}. "
+        "Weave this chart point directly into the answer even if the user's wording is brief.\n\n"
+    )
+
+
+async def generate_astrologer_reply(
+    user: dict,
+    chart: dict,
+    session_messages: list[dict],
+    session_id: str,
+    prompt: str,
+    focus_context: dict | None = None,
+) -> str:
     initial_messages = [{"role": "system", "content": build_system_message(user, chart)}]
     initial_messages.extend(
         {"role": item["role"], "content": item["content"]}
@@ -110,7 +131,7 @@ async def generate_astrologer_reply(user: dict, chart: dict, session_messages: l
         system_message=initial_messages[0]["content"],
         initial_messages=initial_messages,
     ).with_model("openai", "gpt-5.2")
-    return await chat.send_message(UserMessage(text=prompt))
+    return await chat.send_message(UserMessage(text=f"{build_focus_prefix(focus_context)}{prompt}"))
 
 
 def create_session_document(user_id: str, session_id: str) -> dict:

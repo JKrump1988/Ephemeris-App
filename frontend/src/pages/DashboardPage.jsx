@@ -8,6 +8,7 @@ import { NatalChartWheel } from "@/components/common/NatalChartWheel";
 import { TierCard } from "@/components/common/TierCard";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
+import { useAstrologerChat } from "@/context/AstrologerChatContext";
 import { useAuth } from "@/context/AuthContext";
 import { api } from "@/lib/api";
 
@@ -15,7 +16,8 @@ import { api } from "@/lib/api";
 export default function DashboardPage() {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
-  const { refreshUser } = useAuth();
+  const { refreshUser, user } = useAuth();
+  const { primeChartQuestion } = useAstrologerChat();
   const [chart, setChart] = useState(null);
   const [overview, setOverview] = useState(null);
   const [billing, setBilling] = useState(null);
@@ -106,6 +108,16 @@ export default function DashboardPage() {
       toast.error(error?.response?.data?.detail || "Unable to start Stripe checkout right now.");
     }
   };
+
+  const handleExploreChartItem = useCallback((item, options = {}) => {
+    primeChartQuestion(item);
+    if (options.target === "dedicated-page") {
+      navigate("/astrologer");
+      return;
+    }
+    const panel = document.getElementById("dashboard-ai-astrologer-panel");
+    panel?.scrollIntoView({ behavior: "smooth", block: "start" });
+  }, [navigate, primeChartQuestion]);
 
   const highlights = useMemo(() => {
     if (!chart) return [];
@@ -218,9 +230,11 @@ export default function DashboardPage() {
         </div>
       </section>
 
-      <NatalChartWheel chart={chart.chart} />
+      <NatalChartWheel astrologerEligible={["blueprint", "master"].includes(user?.subscription_tier)} chart={chart.chart} onExploreItem={handleExploreChartItem} />
 
-      <AstrologerChatPanel variant="dashboard" />
+      <div id="dashboard-ai-astrologer-panel">
+        <AstrologerChatPanel variant="dashboard" />
+      </div>
 
       <section className="grid gap-6 lg:grid-cols-[0.95fr_1.05fr]" data-testid="dashboard-insight-grid">
         <Card className="border border-white/10 bg-white/5 backdrop-blur-xl" data-testid="dashboard-placement-card">

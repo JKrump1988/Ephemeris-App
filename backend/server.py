@@ -301,6 +301,7 @@ async def send_astrologer_message(payload: AstrologerMessageRequest, current_use
         session_messages,
         payload.session_id,
         payload.message,
+        payload.focus_context,
     )
     assistant_message = {
         "role": "assistant",

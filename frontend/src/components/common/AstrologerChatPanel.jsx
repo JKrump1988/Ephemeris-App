@@ -1,6 +1,6 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useRef } from "react";
 import { Link } from "react-router-dom";
-import { LockKeyhole, MessageCircleHeart, RefreshCcw, SendHorizonal, Sparkles } from "lucide-react";
+import { CircleX, LockKeyhole, MessageCircleHeart, RefreshCcw, SendHorizonal, Sparkles } from "lucide-react";
 import { toast } from "sonner";
 
 import { Button } from "@/components/ui/button";
@@ -13,9 +13,28 @@ import { api } from "@/lib/api";
 
 export function AstrologerChatPanel({ variant = "dashboard" }) {
   const { user } = useAuth();
-  const { messages, loading, sending, eligible, currentTier, suggestedPrompts, sendMessage, resetConversation } = useAstrologerChat();
-  const [draft, setDraft] = useState("");
+  const textareaRef = useRef(null);
+  const {
+    messages,
+    loading,
+    sending,
+    eligible,
+    currentTier,
+    suggestedPrompts,
+    composerDraft,
+    activeFocus,
+    focusSignal,
+    setComposerDraft,
+    clearActiveFocus,
+    sendMessage,
+    resetConversation,
+  } = useAstrologerChat();
   const visibleMessages = useMemo(() => (variant === "dashboard" ? messages.slice(-4) : messages), [messages, variant]);
+
+  useEffect(() => {
+    if (!focusSignal) return;
+    window.requestAnimationFrame(() => textareaRef.current?.focus());
+  }, [focusSignal]);
 
   const startBlueprintCheckout = async () => {
     try {
@@ -30,18 +49,18 @@ export function AstrologerChatPanel({ variant = "dashboard" }) {
   };
 
   const handleSend = async () => {
-    if (!draft.trim() || sending) return;
-    const prompt = draft.trim();
-    setDraft("");
+    if (!composerDraft.trim() || sending) return;
+    const prompt = composerDraft.trim();
     try {
       await sendMessage(prompt);
     } catch {
-      setDraft(prompt);
+      setComposerDraft(prompt);
     }
   };
 
   const handlePrompt = (prompt) => {
-    setDraft(prompt);
+    clearActiveFocus();
+    setComposerDraft(prompt);
   };
 
   if (!eligible) {
@@ -57,6 +76,11 @@ export function AstrologerChatPanel({ variant = "dashboard" }) {
             <p className="max-w-3xl text-sm leading-8 text-slate-300" data-testid={`astrologer-locked-description-${variant}`}>
               This conversation layer is designed to feel like a reflective astrologer who already knows your natal chart. It becomes available once your account reaches Blueprint or Master access.
             </p>
+            {activeFocus ? (
+              <div className="border border-white/10 bg-black/25 px-4 py-4 text-sm leading-7 text-slate-100" data-testid={`astrologer-locked-focus-${variant}`}>
+                Selected chart context: <span className="text-primary">{activeFocus.title}</span>. Unlock Blueprint to ask about this point directly.
+              </div>
+            ) : null}
             <div className="border border-primary/20 bg-primary/10 px-4 py-4 text-sm leading-7 text-slate-100" data-testid={`astrologer-locked-story-${variant}`}>
               Current access: <span className="text-primary">{currentTier}</span>. Blueprint opens chart-aware interpretation for placements, aspects, houses, and transits in conversation.
             </div>
@@ -102,6 +126,20 @@ export function AstrologerChatPanel({ variant = "dashboard" }) {
           </div>
         </div>
 
+        {activeFocus ? (
+          <div className="flex flex-wrap items-start justify-between gap-4 border border-primary/25 bg-primary/10 px-4 py-4" data-testid={`astrologer-active-focus-${variant}`}>
+            <div>
+              <p className="text-[11px] uppercase tracking-[0.22em] text-primary">Interactive chart context</p>
+              <p className="mt-2 font-display text-2xl text-white" data-testid={`astrologer-active-focus-title-${variant}`}>{activeFocus.title}</p>
+              <p className="mt-2 max-w-3xl text-sm leading-7 text-slate-200" data-testid={`astrologer-active-focus-summary-${variant}`}>{activeFocus.summary}</p>
+            </div>
+            <Button className="border border-white/10 bg-white/5 px-4 py-3 text-xs uppercase tracking-[0.24em] text-white hover:bg-white/10" data-testid={`astrologer-clear-focus-button-${variant}`} onClick={clearActiveFocus} variant="ghost">
+              <CircleX className="mr-2 h-4 w-4" />
+              Clear context
+            </Button>
+          </div>
+        ) : null}
+
         <div className={`overflow-y-auto border border-white/10 bg-black/25 p-4 ${variant === "dashboard" ? "max-h-[28rem]" : "min-h-[30rem] max-h-[40rem]"}`} data-testid={`astrologer-messages-${variant}`}>
           {loading ? (
             <p className="text-sm text-slate-400" data-testid={`astrologer-loading-${variant}`}>Loading your astrologer session…</p>
@@ -145,13 +183,14 @@ export function AstrologerChatPanel({ variant = "dashboard" }) {
           <Textarea
             className="min-h-[112px] border-white/10 bg-white/5 text-white placeholder:text-slate-500"
             data-testid={`astrologer-message-input-${variant}`}
-            onChange={(event) => setDraft(event.target.value)}
+            onChange={(event) => setComposerDraft(event.target.value)}
             placeholder="Ask about a placement, an aspect, a transit, or a recurring emotional theme in your chart…"
-            value={draft}
+            ref={textareaRef}
+            value={composerDraft}
           />
           <div className="flex flex-wrap items-center justify-between gap-3">
-            <p className="text-xs leading-6 text-slate-500" data-testid={`astrologer-footnote-${variant}`}>Designed as a chart-aware conversation, not a generic chatbot.</p>
-            <Button className="border border-primary/45 bg-primary px-5 py-3 text-xs uppercase tracking-[0.24em] text-black hover:bg-primary/90" data-testid={`astrologer-send-button-${variant}`} disabled={!draft.trim() || sending} onClick={handleSend}>
+            <p className="text-xs leading-6 text-slate-500" data-testid={`astrologer-footnote-${variant}`}>{activeFocus ? "The selected chart point will be included as live context in the astrologer response." : "Designed as a chart-aware conversation, not a generic chatbot."}</p>
+            <Button className="border border-primary/45 bg-primary px-5 py-3 text-xs uppercase tracking-[0.24em] text-black hover:bg-primary/90" data-testid={`astrologer-send-button-${variant}`} disabled={!composerDraft.trim() || sending} onClick={handleSend}>
               <SendHorizonal className="mr-2 h-4 w-4" />
               {sending ? "Consulting chart…" : "Ask the astrologer"}
             </Button>

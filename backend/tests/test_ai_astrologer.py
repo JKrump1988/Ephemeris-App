@@ -159,20 +159,14 @@ def promoted_blueprint_client(api_base_url, snapshot_user, db_client):
     return session
 
 
-def test_ai_session_initializes_and_returns_prompts_for_snapshot_user(
+def test_ai_session_is_blocked_for_snapshot_user(
     authed_client_snapshot, api_base_url, charted_snapshot_user
 ):
     _ = charted_snapshot_user
     session_id = f"ai-test-snapshot-{uuid.uuid4().hex[:8]}"
     response = authed_client_snapshot.get(f"{api_base_url}/api/ai-astrologer/session/{session_id}", timeout=30)
-    assert response.status_code == 200
-
-    data = response.json()
-    assert data["session_id"] == session_id
-    assert data["eligible"] is False
-    assert data["current_tier"] == "snapshot"
-    assert data["messages"] == []
-    assert isinstance(data["suggested_prompts"], list) and len(data["suggested_prompts"]) >= 3
+    assert response.status_code == 403
+    assert "blueprint and master" in response.json().get("detail", "").lower()
 
 
 def test_ai_message_blocked_for_snapshot_tier(authed_client_snapshot, api_base_url):
@@ -243,3 +237,32 @@ def test_ai_session_returns_persisted_messages_for_same_session(promoted_bluepri
     assert read_data["session_id"] == session_id
     assert isinstance(read_data["messages"], list) and len(read_data["messages"]) == 2
     assert read_data["messages"][0]["content"] == "What transit should I watch this week?"
+
+
+def test_ai_message_accepts_focus_context_payload(promoted_blueprint_client, api_base_url):
+    session_id = f"ai-test-focus-{uuid.uuid4().hex[:8]}"
+    focus_context = {
+        "id": "placement-venus",
+        "kind": "placement",
+        "title": "Venus in Pisces",
+        "summary": "Venus in Pisces in House 7",
+        "prompt": "Explain my Venus placement.",
+    }
+
+    response = promoted_blueprint_client.post(
+        f"{api_base_url}/api/ai-astrologer/message",
+        json={
+            "session_id": session_id,
+            "message": "Explain this placement in practical terms.",
+            "focus_context": focus_context,
+        },
+        timeout=90,
+    )
+    assert response.status_code == 200
+
+    data = response.json()
+    assert data["session_id"] == session_id
+    assert data["messages"][0]["content"] == "Explain this placement in practical terms."
+    assert data["messages"][0]["role"] == "user"
+    assert data["messages"][1]["role"] == "assistant"
+    assert isinstance(data["reply"], str) and len(data["reply"]) > 40

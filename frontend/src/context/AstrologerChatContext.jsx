@@ -20,6 +20,8 @@ function keysForUser(userId) {
   return {
     sessionId: `ephemeral-ai-session-id:${userId}`,
     messages: `ephemeral-ai-session-messages:${userId}`,
+    draft: `ephemeral-ai-session-draft:${userId}`,
+    focus: `ephemeral-ai-session-focus:${userId}`,
   };
 }
 
@@ -31,6 +33,9 @@ export function AstrologerChatProvider({ children }) {
   const [suggestedPrompts, setSuggestedPrompts] = useState([]);
   const [loading, setLoading] = useState(false);
   const [sending, setSending] = useState(false);
+  const [composerDraft, setComposerDraftState] = useState("");
+  const [activeFocus, setActiveFocus] = useState(null);
+  const [focusSignal, setFocusSignal] = useState(0);
 
   const eligible = useMemo(() => ["blueprint", "master"].includes(user?.subscription_tier), [user]);
 
@@ -41,6 +46,23 @@ export function AstrologerChatProvider({ children }) {
     setMessages(nextMessages);
   }, [user]);
 
+  const setComposerDraft = useCallback((nextDraft) => {
+    setComposerDraftState(nextDraft);
+    if (!user?.id) return;
+    sessionStorage.setItem(keysForUser(user.id).draft, nextDraft);
+  }, [user]);
+
+  const persistActiveFocus = useCallback((nextFocus) => {
+    setActiveFocus(nextFocus);
+    if (!user?.id) return;
+    const storageKeys = keysForUser(user.id);
+    if (nextFocus) {
+      sessionStorage.setItem(storageKeys.focus, JSON.stringify(nextFocus));
+      return;
+    }
+    sessionStorage.removeItem(storageKeys.focus);
+  }, [user]);
+
   const initialiseSession = useCallback(async () => {
     if (!user?.id || !isAuthenticated) return;
     const storageKeys = keysForUser(user.id);
@@ -49,6 +71,9 @@ export function AstrologerChatProvider({ children }) {
     setSessionId(existingSessionId);
 
     const storedMessages = sessionStorage.getItem(storageKeys.messages);
+    const storedDraft = sessionStorage.getItem(storageKeys.draft);
+    const storedFocus = sessionStorage.getItem(storageKeys.focus);
+
     if (storedMessages) {
       try {
         setMessages(JSON.parse(storedMessages));
@@ -57,6 +82,17 @@ export function AstrologerChatProvider({ children }) {
       }
     } else {
       setMessages([]);
+    }
+
+    setComposerDraftState(storedDraft || "");
+    if (storedFocus) {
+      try {
+        setActiveFocus(JSON.parse(storedFocus));
+      } catch {
+        setActiveFocus(null);
+      }
+    } else {
+      setActiveFocus(null);
     }
 
     setLoading(true);
@@ -78,10 +114,16 @@ export function AstrologerChatProvider({ children }) {
       setSessionId(null);
       setMessages([]);
       setSuggestedPrompts([]);
+      setComposerDraftState("");
+      setActiveFocus(null);
       return;
     }
     initialiseSession();
   }, [initialiseSession, isAuthenticated, user]);
+
+  const clearActiveFocus = useCallback(() => {
+    persistActiveFocus(null);
+  }, [persistActiveFocus]);
 
   const resetConversation = useCallback(async () => {
     if (!user?.id) return;
@@ -89,18 +131,30 @@ export function AstrologerChatProvider({ children }) {
     const nextSessionId = makeSessionId();
     sessionStorage.setItem(storageKeys.sessionId, nextSessionId);
     sessionStorage.removeItem(storageKeys.messages);
+    sessionStorage.removeItem(storageKeys.draft);
+    sessionStorage.removeItem(storageKeys.focus);
     setSessionId(nextSessionId);
     setMessages([]);
+    setComposerDraftState("");
+    setActiveFocus(null);
     setLoading(true);
     try {
       const response = await api.get(`/ai-astrologer/session/${nextSessionId}`);
       setSuggestedPrompts(response.data.suggested_prompts || []);
+    } catch {
+      setSuggestedPrompts([]);
     } finally {
       setLoading(false);
     }
   }, [user]);
 
-  const sendMessage = useCallback(async (message) => {
+  const primeChartQuestion = useCallback((focusItem) => {
+    persistActiveFocus(focusItem);
+    setComposerDraft(focusItem?.prompt || "");
+    setFocusSignal((current) => current + 1);
+  }, [persistActiveFocus, setComposerDraft]);
+
+  const sendMessage = useCallback(async (message, focusContext = activeFocus) => {
     if (!sessionId) return;
     if (!eligible) {
       toast.error("AI Astrologer opens at Blueprint and Master tiers.");
@@ -109,8 +163,14 @@ export function AstrologerChatProvider({ children }) {
 
     setSending(true);
     try {
-      const response = await api.post("/ai-astrologer/message", { session_id: sessionId, message });
+      const response = await api.post("/ai-astrologer/message", {
+        session_id: sessionId,
+        message,
+        focus_context: focusContext,
+      });
       persistMessages(response.data.messages || []);
+      setComposerDraft("");
+      clearActiveFocus();
       return response.data;
     } catch (error) {
       toast.error(error?.response?.data?.detail || "The astrologer could not answer right now.");
@@ -118,7 +178,7 @@ export function AstrologerChatProvider({ children }) {
     } finally {
       setSending(false);
     }
-  }, [eligible, persistMessages, sessionId]);
+  }, [activeFocus, clearActiveFocus, eligible, persistMessages, sessionId, setComposerDraft]);
 
   const value = useMemo(() => ({
     sessionId,
@@ -128,9 +188,15 @@ export function AstrologerChatProvider({ children }) {
     eligible,
     currentTier: user?.subscription_tier,
     suggestedPrompts,
+    composerDraft,
+    activeFocus,
+    focusSignal,
+    setComposerDraft,
+    clearActiveFocus,
+    primeChartQuestion,
     sendMessage,
     resetConversation,
-  }), [eligible, loading, messages, resetConversation, sendMessage, sending, sessionId, suggestedPrompts, user]);
+  }), [activeFocus, clearActiveFocus, composerDraft, eligible, focusSignal, loading, messages, primeChartQuestion, resetConversation, sendMessage, sending, sessionId, setComposerDraft, suggestedPrompts, user]);
 
   return <AstrologerChatContext.Provider value={value}>{children}</AstrologerChatContext.Provider>;
 }
