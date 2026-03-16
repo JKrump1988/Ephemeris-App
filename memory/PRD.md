@@ -122,3 +122,5 @@ Required modules from the brief:
 - Performed a maximum-rigor recursive audit across onboarding, readings, dashboard, monetization, AI astrologer, interactive chart, mobile UX, and academy discoverability
 - Identified mobile navigation density as insufficient under premium-quality standards and replaced wrapped mobile nav with a dedicated menu panel
 - Revalidated mobile chart-to-astrologer exploration flow after audit updates
+- Moved mobile toast placement lower to prevent post-login header interference and improved mobile quick-ask reliability by auto-centering selected chart detail cards
+- Completed frontend regression retest confirming authenticated mobile menu opening, mobile quick-ask routing, and preserved chart context
