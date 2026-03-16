@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { Orbit, Sparkles } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
@@ -133,6 +133,7 @@ function buildAspectItem(aspect, index) {
 
 export function NatalChartWheel({ chart, onExploreItem, astrologerEligible }) {
   const [selectedItem, setSelectedItem] = useState(null);
+  const detailCardRef = useRef(null);
   const placements = DISPLAY_ORDER.map((key) => chart?.placements?.[key]).filter(Boolean);
   const aspects = (chart?.aspects || []).slice(0, 18);
   const houseCusps = chart?.houses?.cusps || [];
@@ -236,6 +237,13 @@ export function NatalChartWheel({ chart, onExploreItem, astrologerEligible }) {
     if (!selectedItem) return;
     onExploreItem?.(selectedItem, { target: isMobileViewport() ? "dedicated-page" : "dashboard-panel" });
   };
+
+  useEffect(() => {
+    if (!selectedItem || !isMobileViewport()) return;
+    window.setTimeout(() => {
+      detailCardRef.current?.scrollIntoView({ behavior: "smooth", block: "center" });
+    }, 120);
+  }, [selectedItem]);
 
   if (!chart) {
     return null;
@@ -392,14 +400,14 @@ export function NatalChartWheel({ chart, onExploreItem, astrologerEligible }) {
             </div>
 
             {selectedItem ? (
-              <div className="mt-5 border border-primary/25 bg-primary/10 p-4" data-testid="natal-chart-selected-detail-card">
-                <div className="flex flex-wrap items-start justify-between gap-4">
+              <div className="mt-5 border border-primary/25 bg-primary/10 p-4 md:p-5" data-testid="natal-chart-selected-detail-card" ref={detailCardRef}>
+                <div className="flex flex-col items-start gap-4 md:flex-row md:justify-between">
                   <div>
                     <p className="text-[11px] uppercase tracking-[0.22em] text-primary">Selected chart point</p>
                     <h4 className="mt-2 font-display text-3xl text-white" data-testid="natal-chart-selected-detail-title">{selectedItem.title}</h4>
                     <p className="mt-2 max-w-2xl text-sm leading-7 text-slate-200" data-testid="natal-chart-selected-detail-summary">{selectedItem.summary}</p>
                   </div>
-                  <Button className="border border-primary/45 bg-primary px-5 py-3 text-xs uppercase tracking-[0.24em] text-black hover:bg-primary/90" data-testid="natal-chart-ask-astrologer-button" onClick={handleAsk}>
+                  <Button className="w-full border border-primary/45 bg-primary px-5 py-3 text-xs uppercase tracking-[0.24em] text-black hover:bg-primary/90 md:w-auto" data-testid="natal-chart-ask-astrologer-button" onClick={handleAsk}>
                     <Sparkles className="mr-2 h-4 w-4" />
                     {astrologerEligible ? "Ask the astrologer" : "Open astrologer"}
                   </Button>

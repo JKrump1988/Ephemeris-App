@@ -59,7 +59,7 @@ function App() {
               <Route path="/account" element={<RoutedPage requireAuth requireChart><AccountPage /></RoutedPage>} />
               <Route path="*" element={<Navigate replace to="/" />} />
             </Routes>
-            <Toaster closeButton position="top-right" richColors />
+            <Toaster closeButton mobileOffset="96px" offset="84px" position="top-right" richColors />
           </BrowserRouter>
         </AstrologerChatProvider>
       </AuthProvider>

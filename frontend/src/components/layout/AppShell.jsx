@@ -104,6 +104,7 @@ export function AppShell({ children }) {
                     "border border-white/8 bg-white/5 px-4 py-3 text-xs uppercase tracking-[0.24em] text-slate-300 transition-colors hover:text-primary",
                     isActive && "border-primary/30 text-primary",
                   )}
+                  onClick={() => setMobileMenuOpen(false)}
                   to={item.to}
                   data-testid={`mobile-nav-link-${item.label.toLowerCase()}`}
                 >
@@ -111,16 +112,19 @@ export function AppShell({ children }) {
                 </NavLink>
               )) : (
                 <>
-                  <a href="#feature-map" className="border border-white/8 bg-white/5 px-4 py-3 text-xs uppercase tracking-[0.24em] text-slate-300 transition-colors hover:text-primary" data-testid="mobile-nav-link-features">Features</a>
-                  <a href="#tier-map" className="border border-white/8 bg-white/5 px-4 py-3 text-xs uppercase tracking-[0.24em] text-slate-300 transition-colors hover:text-primary" data-testid="mobile-nav-link-tiers">Tiers</a>
-                  <a href="#architecture" className="border border-white/8 bg-white/5 px-4 py-3 text-xs uppercase tracking-[0.24em] text-slate-300 transition-colors hover:text-primary" data-testid="mobile-nav-link-architecture">Architecture</a>
+                  <a href="#feature-map" className="border border-white/8 bg-white/5 px-4 py-3 text-xs uppercase tracking-[0.24em] text-slate-300 transition-colors hover:text-primary" data-testid="mobile-nav-link-features" onClick={() => setMobileMenuOpen(false)}>Features</a>
+                  <a href="#tier-map" className="border border-white/8 bg-white/5 px-4 py-3 text-xs uppercase tracking-[0.24em] text-slate-300 transition-colors hover:text-primary" data-testid="mobile-nav-link-tiers" onClick={() => setMobileMenuOpen(false)}>Tiers</a>
+                  <a href="#architecture" className="border border-white/8 bg-white/5 px-4 py-3 text-xs uppercase tracking-[0.24em] text-slate-300 transition-colors hover:text-primary" data-testid="mobile-nav-link-architecture" onClick={() => setMobileMenuOpen(false)}>Architecture</a>
                 </>
               )}
 
               {isAuthenticated ? (
                 <Button
                   className="justify-start border border-white/15 bg-white/5 px-4 py-3 text-xs uppercase tracking-[0.24em] text-white hover:bg-white/10"
-                  onClick={logout}
+                  onClick={() => {
+                    setMobileMenuOpen(false);
+                    logout();
+                  }}
                   data-testid="mobile-logout-button"
                   variant="ghost"
                 >
