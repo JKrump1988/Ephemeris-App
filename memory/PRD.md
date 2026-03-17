@@ -86,7 +86,7 @@ Required modules from the brief:
 
 ### P1
 - Add richer chart visualizations beyond the current static wheel (interactive tooltips, aspect grid, deeper wheel controls)
-- Add saved AI chat history and richer astrologer tools beyond the current session-only implementation
+- Add richer astrologer tools beyond the current saved-history implementation, such as pinned conversations, tagging, and answer bookmarks
 - Add subscription-ready daily insight history and notification preferences
 - Add better accessibility polish for keyboard-only navigation and reduced-motion preferences
 
@@ -103,7 +103,7 @@ Required modules from the brief:
 - Better rate limiting and resilience around external geocoding/search dependencies
 
 ### P1 Remaining
-- Saved AI Astrologer history, conversation controls, and deeper chart exploration tools
+- Deeper AI Astrologer conversation controls, organization tools, and richer chart-linked references
 - More interactive chart visual components beyond current click-to-chat flow (tooltips, drag/explore states, expanded aspect matrix)
 - Daily history / notifications / retention features
 
@@ -115,7 +115,7 @@ Required modules from the brief:
 ## Next Tasks List
 - Polish Stripe success-state UX and strengthen payment lifecycle observability
 - Expand the natal wheel further with aspect tooltips, deeper sign/house overlays, and richer chart education cues
-- Add saved AI astrologer history, follow-up threading, and deeper context tools around previous answers
+- Add pinned astrologer threads, follow-up threading, and deeper context tools around previous answers
 - Add chart history so users can compare revised birth data without losing the previous version
 
 ### 2026-03-16
@@ -124,3 +124,6 @@ Required modules from the brief:
 - Revalidated mobile chart-to-astrologer exploration flow after audit updates
 - Moved mobile toast placement lower to prevent post-login header interference and improved mobile quick-ask reliability by auto-centering selected chart detail cards
 - Completed frontend regression retest confirming authenticated mobile menu opening, mobile quick-ask routing, and preserved chart context
+- Added saved AI conversation history so astrologer sessions now persist to the user account with titles, previews, counts, and resumable session loading
+- Expanded natal chart education overlays with quick meanings, mini learning notes, hover/tap teaching states, and extra ask-the-astrologer shortcuts for desktop and mobile
+- Added dedicated astrologer history UI and validated saved-history / overlay behavior through backend and frontend regression testing
