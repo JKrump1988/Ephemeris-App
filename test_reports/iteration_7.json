@@ -1,0 +1,54 @@
+{
+  "summary": "Frontend-only regression testing completed for mobile/desktop navigation and mobile chart-to-astrologer flow. Desktop navigation is intact. Mobile unauthenticated menu works, but authenticated mobile menu panel did not open in repeated tests after login. Mobile chart selection works, but quick-ask navigation was flaky via standard click in automation (JS click fallback navigated).",
+  "backend_issues": {
+    "critical": [],
+    "minor": []
+  },
+  "frontend_issues": {
+    "ui_bugs": [
+      {
+        "component": "AppShell mobile header (authenticated dashboard)",
+        "issue": "Mobile menu toggle did not open mobile navigation panel in 3 consecutive runs after successful login.",
+        "selector": "[data-testid='mobile-menu-toggle-button'] -> [data-testid='mobile-navigation-panel']",
+        "priority": "HIGH"
+      }
+    ],
+    "integration_issues": [
+      {
+        "flow": "Mobile dashboard chart quick-ask -> /astrologer",
+        "issue": "Selecting Venus context succeeded, but clicking the quick-ask button did not navigate in standard automation click path; JS click fallback did navigate and preserved context draft.",
+        "affected_selectors": [
+          "[data-testid='natal-chart-placement-venus']",
+          "[data-testid='natal-chart-ask-astrologer-button']",
+          "[data-testid='astrologer-chat-panel-page']"
+        ]
+      }
+    ],
+    "design_issues": []
+  },
+  "test_report_links": [
+    "/app/test_reports/iteration_7.json"
+  ],
+  "action_items": [
+    "Investigate authenticated mobile menu toggle flow in AppShell and confirm panel state updates on click for real touch interactions.",
+    "Check whether toast/banner overlay (post-login) is intercepting mobile header interactions.",
+    "Verify mobile quick-ask button interaction path against overlays/fixed badges and ensure one-tap navigation to /astrologer without fallback.",
+    "Re-test on real iOS/Android devices after fixes."
+  ],
+  "critical_code_review_comments": [
+    "AppShell mobile menu relies on local mobileMenuOpen state; observed behavior indicates click-to-state transition is not reliable in authenticated mobile runtime conditions.",
+    "Top-right toast presentation immediately after login may overlap/compete with header interaction area on small viewports; confirm z-index and pointer-event behavior."
+  ],
+  "updated_files": [
+    "/app/test_reports/iteration_7.json"
+  ],
+  "success_rate": {
+    "backend": "N/A (frontend-only scope)",
+    "frontend": "70%"
+  },
+  "seed_data_creation": "Used existing seeded blueprint user from /app/tests/seed_ai_users.json; no new seed created.",
+  "retest_needed": true,
+  "should_main_agent_self_test": false,
+  "context_for_next_testing_agent": "Validated mobile unauthenticated menu panel opens correctly on landing and exposes expected links. After login to blueprint account, mobile menu panel did not open in 3 attempts. Mobile Venus selection card still works. Quick-ask required JS click fallback to navigate to /astrologer in automation; fallback reached astrologer page with Venus-context draft present. Desktop nav links and behavior passed.",
+  "rca of the issue": "Reproduction (menu): mobile viewport 390x844 -> open /auth -> login blueprint user -> on /dashboard click [data-testid='mobile-menu-toggle-button'] -> [data-testid='mobile-navigation-panel'] never appears across 3 attempts. Reproduction (quick-ask): select Venus from wheel -> selected detail card appears -> click quick-ask button; no route transition in standard click path; JS click triggers transition. Likely contributors: overlay/pointer interception in mobile viewport (post-login toast for menu region; fixed badge/stacking interactions near CTA region) and/or event handling not firing consistently under overlapping layers."
+}

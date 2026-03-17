@@ -1,0 +1,32 @@
+.panel-glow {
+    position: relative;
+}
+
+.panel-glow::after {
+    content: "";
+    position: absolute;
+    inset: auto 10% -1px 10%;
+    height: 1px;
+    background: linear-gradient(90deg, transparent, rgba(212, 175, 55, 0.8), transparent);
+    opacity: 0.7;
+}
+
+.editorial-frame {
+    box-shadow:
+        0 30px 90px rgba(0, 0, 0, 0.38),
+        inset 0 1px 0 rgba(255, 255, 255, 0.05);
+}
+
+@keyframes float-slow {
+    0%,
+    100% {
+        transform: translateY(0);
+    }
+    50% {
+        transform: translateY(-6px);
+    }
+}
+
+.float-slow {
+    animation: float-slow 8s ease-in-out infinite;
+}
