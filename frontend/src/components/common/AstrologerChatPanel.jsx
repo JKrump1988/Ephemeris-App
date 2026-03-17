@@ -16,6 +16,8 @@ export function AstrologerChatPanel({ variant = "dashboard" }) {
   const textareaRef = useRef(null);
   const {
     messages,
+    sessionTitle,
+    history,
     loading,
     sending,
     eligible,
@@ -109,8 +111,14 @@ export function AstrologerChatPanel({ variant = "dashboard" }) {
             <p className="text-[11px] uppercase tracking-[0.28em] text-primary" data-testid={`astrologer-panel-eyebrow-${variant}`}>AI Astrologer</p>
             <h3 className="mt-2 font-display text-4xl text-white" data-testid={`astrologer-panel-title-${variant}`}>A reflective astrologer that already knows your chart.</h3>
             <p className="mt-3 max-w-3xl text-sm leading-7 text-slate-300" data-testid={`astrologer-panel-description-${variant}`}>
-              Session-only memory is active for this visit. Ask about placements, aspects, transits, houses, or the emotional themes moving through your chart right now.
+              Your conversations now save to your account, so you can return to earlier chart questions and keep building meaning over time. Ask about placements, aspects, transits, houses, or the emotional themes moving through your chart right now.
             </p>
+            <div className="mt-4 inline-flex items-center gap-3 border border-white/10 bg-white/5 px-4 py-3 text-xs uppercase tracking-[0.22em] text-slate-300" data-testid={`astrologer-session-meta-${variant}`}>
+              <span className="text-primary">Live session</span>
+              <span>{sessionTitle}</span>
+              <span>·</span>
+              <span>{history.length} saved chat{history.length === 1 ? "" : "s"}</span>
+            </div>
           </div>
 
           <div className="flex flex-wrap gap-3">

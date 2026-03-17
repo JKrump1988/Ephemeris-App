@@ -44,7 +44,6 @@ export default function AuthPage() {
         ? { email: form.email, password: form.password }
         : { name: form.name, email: form.email, password: form.password };
       const result = await action(payload);
-      toast.success(mode === "signin" ? "Welcome back to Ephemeral" : "Account created");
       navigate(result.user.has_chart ? "/dashboard" : "/onboarding", { replace: true });
     } catch (error) {
       toast.error(error?.response?.data?.detail || "Something went wrong while authenticating.");

@@ -208,6 +208,7 @@ class AstrologerChatMessage(BaseModel):
 
 class AstrologerSessionResponse(BaseModel):
     session_id: str
+    title: str
     messages: List[AstrologerChatMessage]
     eligible: bool
     current_tier: TierName
@@ -222,6 +223,20 @@ class AstrologerMessageRequest(BaseModel):
 
 class AstrologerMessageResponse(BaseModel):
     session_id: str
+    title: str
     reply: str
     messages: List[AstrologerChatMessage]
     current_tier: TierName
+
+
+class AstrologerSessionListItem(BaseModel):
+    session_id: str
+    title: str
+    preview: str
+    updated_at: str
+    message_count: int
+    last_focus_title: Optional[str] = None
+
+
+class AstrologerSessionListResponse(BaseModel):
+    sessions: List[AstrologerSessionListItem]

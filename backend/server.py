@@ -11,7 +11,15 @@ from motor.motor_asyncio import AsyncIOMotorClient
 import logging
 
 from academy_content import ACADEMY_CATALOG
-from ai_astrologer import can_access_ai, create_session_document, generate_astrologer_reply, serialise_session
+from ai_astrologer import (
+    build_session_preview,
+    build_session_title,
+    can_access_ai,
+    create_session_document,
+    generate_astrologer_reply,
+    serialise_session,
+    serialise_session_list_item,
+)
 from auth_utils import authenticate_user, create_access_token, get_current_user, get_password_hash, set_database
 from astrology_engine import generate_natal_chart, search_locations
 from interpretation_engine import build_daily_insight, build_reading
@@ -19,6 +27,7 @@ from models import (
     AcademyCatalogResponse,
     AstrologerMessageRequest,
     AstrologerMessageResponse,
+    AstrologerSessionListResponse,
     AstrologerSessionResponse,
     BillingCatalogResponse,
     ChartCreate,
@@ -273,6 +282,20 @@ async def read_astrologer_session(session_id: str, current_user: dict = Depends(
     return serialise_session(session_doc, current_user["subscription_tier"])
 
 
+@api_router.get("/ai-astrologer/sessions", response_model=AstrologerSessionListResponse)
+async def list_astrologer_sessions(current_user: dict = Depends(get_current_user)):
+    if not can_access_ai(current_user["subscription_tier"]):
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="AI Astrologer is available for Blueprint and Master tiers.",
+        )
+    session_docs = await db.ai_astrologer_sessions.find(
+        {"user_id": current_user["id"], "message_count": {"$gt": 0}},
+        {"_id": 0},
+    ).sort("updated_at", -1).to_list(50)
+    return {"sessions": [serialise_session_list_item(item) for item in session_docs]}
+
+
 @api_router.post("/ai-astrologer/message", response_model=AstrologerMessageResponse)
 async def send_astrologer_message(payload: AstrologerMessageRequest, current_user: dict = Depends(get_current_user)):
     if not can_access_ai(current_user["subscription_tier"]):
@@ -310,7 +333,17 @@ async def send_astrologer_message(payload: AstrologerMessageRequest, current_use
     }
     updated_messages = [*session_messages, user_message, assistant_message]
     now = datetime.now(timezone.utc).isoformat()
-    session_doc.update({"messages": updated_messages, "updated_at": now})
+    if not session_doc.get("title") or session_doc.get("title") == "New chart conversation":
+        session_doc["title"] = build_session_title(payload.message, payload.focus_context)
+    session_doc.update(
+        {
+            "messages": updated_messages,
+            "updated_at": now,
+            "preview": build_session_preview(reply),
+            "message_count": len(updated_messages),
+            "last_focus_title": payload.focus_context.get("title") if payload.focus_context else session_doc.get("last_focus_title"),
+        }
+    )
     if not session_doc.get("created_at"):
         session_doc["created_at"] = now
     await db.ai_astrologer_sessions.update_one(
@@ -321,6 +354,7 @@ async def send_astrologer_message(payload: AstrologerMessageRequest, current_use
 
     return {
         "session_id": payload.session_id,
+        "title": session_doc["title"],
         "reply": reply,
         "messages": updated_messages,
         "current_tier": current_user["subscription_tier"],

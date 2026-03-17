@@ -18,8 +18,7 @@ function makeSessionId() {
 
 function keysForUser(userId) {
   return {
-    sessionId: `ephemeral-ai-session-id:${userId}`,
-    messages: `ephemeral-ai-session-messages:${userId}`,
+    activeSessionId: `ephemeral-ai-active-session-id:${userId}`,
     draft: `ephemeral-ai-session-draft:${userId}`,
     focus: `ephemeral-ai-session-focus:${userId}`,
   };
@@ -29,22 +28,18 @@ function keysForUser(userId) {
 export function AstrologerChatProvider({ children }) {
   const { user, isAuthenticated } = useAuth();
   const [sessionId, setSessionId] = useState(null);
+  const [sessionTitle, setSessionTitle] = useState("New chart conversation");
   const [messages, setMessages] = useState([]);
+  const [history, setHistory] = useState([]);
   const [suggestedPrompts, setSuggestedPrompts] = useState([]);
   const [loading, setLoading] = useState(false);
+  const [historyLoading, setHistoryLoading] = useState(false);
   const [sending, setSending] = useState(false);
   const [composerDraft, setComposerDraftState] = useState("");
   const [activeFocus, setActiveFocus] = useState(null);
   const [focusSignal, setFocusSignal] = useState(0);
 
   const eligible = useMemo(() => ["blueprint", "master"].includes(user?.subscription_tier), [user]);
-
-  const persistMessages = useCallback((nextMessages) => {
-    if (!user?.id) return;
-    const storageKeys = keysForUser(user.id);
-    sessionStorage.setItem(storageKeys.messages, JSON.stringify(nextMessages));
-    setMessages(nextMessages);
-  }, [user]);
 
   const setComposerDraft = useCallback((nextDraft) => {
     setComposerDraftState(nextDraft);
@@ -63,27 +58,51 @@ export function AstrologerChatProvider({ children }) {
     sessionStorage.removeItem(storageKeys.focus);
   }, [user]);
 
+  const clearActiveFocus = useCallback(() => {
+    persistActiveFocus(null);
+  }, [persistActiveFocus]);
+
+  const refreshHistory = useCallback(async () => {
+    if (!user?.id || !eligible) {
+      setHistory([]);
+      return [];
+    }
+    setHistoryLoading(true);
+    try {
+      const response = await api.get("/ai-astrologer/sessions");
+      const sessions = response.data.sessions || [];
+      setHistory(sessions);
+      return sessions;
+    } catch {
+      setHistory([]);
+      return [];
+    } finally {
+      setHistoryLoading(false);
+    }
+  }, [eligible, user]);
+
+  const loadSession = useCallback(async (nextSessionId) => {
+    if (!user?.id || !eligible) return;
+    const storageKeys = keysForUser(user.id);
+    setLoading(true);
+    try {
+      const response = await api.get(`/ai-astrologer/session/${nextSessionId}`);
+      localStorage.setItem(storageKeys.activeSessionId, nextSessionId);
+      setSessionId(nextSessionId);
+      setSessionTitle(response.data.title || "New chart conversation");
+      setMessages(response.data.messages || []);
+      setSuggestedPrompts(response.data.suggested_prompts || []);
+      return response.data;
+    } finally {
+      setLoading(false);
+    }
+  }, [eligible, user]);
+
   const initialiseSession = useCallback(async () => {
     if (!user?.id || !isAuthenticated) return;
     const storageKeys = keysForUser(user.id);
-    const existingSessionId = sessionStorage.getItem(storageKeys.sessionId) || makeSessionId();
-    sessionStorage.setItem(storageKeys.sessionId, existingSessionId);
-    setSessionId(existingSessionId);
-
-    const storedMessages = sessionStorage.getItem(storageKeys.messages);
     const storedDraft = sessionStorage.getItem(storageKeys.draft);
     const storedFocus = sessionStorage.getItem(storageKeys.focus);
-
-    if (storedMessages) {
-      try {
-        setMessages(JSON.parse(storedMessages));
-      } catch {
-        setMessages([]);
-      }
-    } else {
-      setMessages([]);
-    }
-
     setComposerDraftState(storedDraft || "");
     if (storedFocus) {
       try {
@@ -95,24 +114,31 @@ export function AstrologerChatProvider({ children }) {
       setActiveFocus(null);
     }
 
-    setLoading(true);
-    try {
-      const response = await api.get(`/ai-astrologer/session/${existingSessionId}`);
-      setSuggestedPrompts(response.data.suggested_prompts || []);
-      if (!storedMessages) {
-        persistMessages(response.data.messages || []);
-      }
-    } catch {
+    if (!eligible) {
+      setSessionId(null);
+      setSessionTitle("New chart conversation");
+      setMessages([]);
       setSuggestedPrompts([]);
-    } finally {
-      setLoading(false);
+      setHistory([]);
+      return;
     }
-  }, [isAuthenticated, persistMessages, user]);
+
+    const sessions = await refreshHistory();
+    const preferredSessionId = localStorage.getItem(storageKeys.activeSessionId);
+    const historyHasPreferred = sessions.some((item) => item.session_id === preferredSessionId);
+    const nextSessionId = historyHasPreferred
+      ? preferredSessionId
+      : sessions[0]?.session_id || makeSessionId();
+
+    await loadSession(nextSessionId);
+  }, [eligible, isAuthenticated, loadSession, refreshHistory, user]);
 
   useEffect(() => {
     if (!isAuthenticated || !user?.id) {
       setSessionId(null);
+      setSessionTitle("New chart conversation");
       setMessages([]);
+      setHistory([]);
       setSuggestedPrompts([]);
       setComposerDraftState("");
       setActiveFocus(null);
@@ -121,32 +147,20 @@ export function AstrologerChatProvider({ children }) {
     initialiseSession();
   }, [initialiseSession, isAuthenticated, user]);
 
-  const clearActiveFocus = useCallback(() => {
-    persistActiveFocus(null);
-  }, [persistActiveFocus]);
-
   const resetConversation = useCallback(async () => {
-    if (!user?.id) return;
+    if (!user?.id || !eligible) return;
     const storageKeys = keysForUser(user.id);
     const nextSessionId = makeSessionId();
-    sessionStorage.setItem(storageKeys.sessionId, nextSessionId);
-    sessionStorage.removeItem(storageKeys.messages);
+    localStorage.setItem(storageKeys.activeSessionId, nextSessionId);
     sessionStorage.removeItem(storageKeys.draft);
     sessionStorage.removeItem(storageKeys.focus);
-    setSessionId(nextSessionId);
-    setMessages([]);
     setComposerDraftState("");
     setActiveFocus(null);
-    setLoading(true);
-    try {
-      const response = await api.get(`/ai-astrologer/session/${nextSessionId}`);
-      setSuggestedPrompts(response.data.suggested_prompts || []);
-    } catch {
-      setSuggestedPrompts([]);
-    } finally {
-      setLoading(false);
-    }
-  }, [user]);
+    setSessionId(nextSessionId);
+    setSessionTitle("New chart conversation");
+    setMessages([]);
+    await loadSession(nextSessionId);
+  }, [eligible, loadSession, user]);
 
   const primeChartQuestion = useCallback((focusItem) => {
     persistActiveFocus(focusItem);
@@ -168,9 +182,11 @@ export function AstrologerChatProvider({ children }) {
         message,
         focus_context: focusContext,
       });
-      persistMessages(response.data.messages || []);
+      setMessages(response.data.messages || []);
+      setSessionTitle(response.data.title || sessionTitle);
       setComposerDraft("");
       clearActiveFocus();
+      await refreshHistory();
       return response.data;
     } catch (error) {
       toast.error(error?.response?.data?.detail || "The astrologer could not answer right now.");
@@ -178,12 +194,15 @@ export function AstrologerChatProvider({ children }) {
     } finally {
       setSending(false);
     }
-  }, [activeFocus, clearActiveFocus, eligible, persistMessages, sessionId, setComposerDraft]);
+  }, [activeFocus, clearActiveFocus, eligible, refreshHistory, sessionId, sessionTitle, setComposerDraft]);
 
   const value = useMemo(() => ({
     sessionId,
+    sessionTitle,
     messages,
+    history,
     loading,
+    historyLoading,
     sending,
     eligible,
     currentTier: user?.subscription_tier,
@@ -194,9 +213,11 @@ export function AstrologerChatProvider({ children }) {
     setComposerDraft,
     clearActiveFocus,
     primeChartQuestion,
+    loadSession,
+    refreshHistory,
     sendMessage,
     resetConversation,
-  }), [activeFocus, clearActiveFocus, composerDraft, eligible, focusSignal, loading, messages, primeChartQuestion, resetConversation, sendMessage, sending, sessionId, setComposerDraft, suggestedPrompts, user]);
+  }), [activeFocus, clearActiveFocus, composerDraft, eligible, focusSignal, history, historyLoading, loadSession, loading, messages, primeChartQuestion, refreshHistory, resetConversation, sendMessage, sending, sessionId, sessionTitle, setComposerDraft, suggestedPrompts, user]);
 
   return <AstrologerChatContext.Provider value={value}>{children}</AstrologerChatContext.Provider>;
 }

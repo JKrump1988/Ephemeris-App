@@ -42,6 +42,27 @@ const HOUSE_TOPICS = {
   11: "community, friendship, and future vision",
   12: "inner life, solitude, and the unconscious",
 };
+const PLANET_MEANINGS = {
+  Sun: "identity, vitality, and the style of conscious selfhood",
+  Moon: "emotional instinct, regulation, and inner security",
+  Mercury: "thinking style, language, and interpretation",
+  Venus: "attachment, desire, pleasure, and relational value",
+  Mars: "drive, heat, assertion, and how you pursue what matters",
+  Jupiter: "growth, trust, worldview, and expansion",
+  Saturn: "structure, maturity, fear, and earned authority",
+  Uranus: "disruption, freedom, originality, and awakening",
+  Neptune: "imagination, sensitivity, longing, and spiritual blur",
+  Pluto: "depth, power, transformation, and compulsion",
+  "North Node": "future growth, stretch, and life direction",
+  Ascendant: "first impression, bodily presence, and how your life approaches the world",
+};
+const ASPECT_MEANINGS = {
+  Conjunction: "a fused pattern where two chart forces act as one concentrated theme",
+  Sextile: "an opportunity aspect that becomes stronger when you engage it consciously",
+  Square: "creative friction that pushes development through tension and pressure",
+  Trine: "a natural flow that can become an effortless gift or an underused strength",
+  Opposition: "a polarity asking for balance between two equally real instincts",
+};
 
 
 function polarPoint(cx, cy, radius, angle) {
@@ -98,6 +119,8 @@ function buildPlacementItem(placement) {
     title: `${placement.name} in ${placement.sign}`,
     summary: `${placement.name} sits in ${placement.sign} at ${placement.degree}°,${placement.house ? ` in House ${placement.house},` : ""} shaping this part of your chart through ${placement.sign}'s tone and symbolism.`,
     prompt: `Explain my ${placement.name} placement in ${placement.sign}${placement.house ? ` in House ${placement.house}` : ""}.`,
+    quickMeaning: `${placement.name} describes ${PLANET_MEANINGS[placement.name]}. In ${placement.sign}, it speaks through that sign's emotional and symbolic style${placement.house ? `, and in House ${placement.house} it becomes especially visible through that life area` : ""}.`,
+    learningNote: `Mini learning note: read this placement in three layers — planet, sign, and house. Then ask how its aspects or current transits change the tone in lived experience.`,
     placementName: placement.name,
     houseNumber: placement.house,
     relatedPlacementNames: [placement.name],
@@ -113,6 +136,8 @@ function buildHouseItem(houseNumber, placements) {
     title: `House ${houseNumber}`,
     summary: `House ${houseNumber} describes ${HOUSE_TOPICS[houseNumber]}. This part of your chart contains ${names}.`,
     prompt: `Explain House ${houseNumber} in my chart, especially the planets there.`,
+    quickMeaning: `House ${houseNumber} is the chart chamber of ${HOUSE_TOPICS[houseNumber]}. It shows where that theme becomes concrete in ordinary life.`,
+    learningNote: `Mini learning note: start with the house topic, then look at the planets inside it. After that, ask what transits are activating this house right now.`,
     houseNumber,
     relatedPlacementNames: placements.map((item) => item.name),
   };
@@ -126,6 +151,8 @@ function buildAspectItem(aspect, index) {
     title: `${aspect.between[0]} ${aspect.type} ${aspect.between[1]}`,
     summary: `${aspect.between[0]} forms a ${aspect.type.toLowerCase()} with ${aspect.between[1]} at an orb of ${aspect.orb}°, creating a live dialogue between those two chart factors.`,
     prompt: `Explain my ${aspect.between[0]} ${aspect.type.toLowerCase()} ${aspect.between[1]} aspect.`,
+    quickMeaning: `This ${aspect.type.toLowerCase()} is ${ASPECT_MEANINGS[aspect.type]}. It shows how ${aspect.between[0]} and ${aspect.between[1]} shape each other in your chart.`,
+    learningNote: `Mini learning note: aspects are relationships between planets. Ask what this pattern feels like psychologically, relationally, and during important transit periods.`,
     relatedPlacementNames: aspect.between,
   };
 }
@@ -133,6 +160,7 @@ function buildAspectItem(aspect, index) {
 
 export function NatalChartWheel({ chart, onExploreItem, astrologerEligible }) {
   const [selectedItem, setSelectedItem] = useState(null);
+  const [hoveredItem, setHoveredItem] = useState(null);
   const detailCardRef = useRef(null);
   const placements = DISPLAY_ORDER.map((key) => chart?.placements?.[key]).filter(Boolean);
   const aspects = (chart?.aspects || []).slice(0, 18);
@@ -201,6 +229,7 @@ export function NatalChartWheel({ chart, onExploreItem, astrologerEligible }) {
       ? selectedItem.houseNumber
       : null;
   const highlightedPlacements = new Set(selectedItem?.relatedPlacementNames || []);
+  const educationItem = hoveredItem || selectedItem;
 
   const labelPosition = useMemo(() => {
     if (!selectedItem) return null;
@@ -231,6 +260,16 @@ export function NatalChartWheel({ chart, onExploreItem, astrologerEligible }) {
     if (!isMobileViewport()) {
       onExploreItem?.(item, { target: "dashboard-panel" });
     }
+  };
+
+  const handleHover = (item) => {
+    if (isMobileViewport()) return;
+    setHoveredItem(item);
+  };
+
+  const clearHover = () => {
+    if (isMobileViewport()) return;
+    setHoveredItem(null);
   };
 
   const handleAsk = () => {
@@ -288,6 +327,8 @@ export function NatalChartWheel({ chart, onExploreItem, astrologerEligible }) {
                     fill={selectedHouseNumber === index + 1 ? "rgba(212,175,55,0.12)" : "transparent"}
                     key={`house-sector-${index + 1}`}
                     onClick={() => handleSelect(buildHouseItem(index + 1, placementsByHouse[index + 1]))}
+                    onMouseEnter={() => handleHover(buildHouseItem(index + 1, placementsByHouse[index + 1]))}
+                    onMouseLeave={clearHover}
                     style={{ cursor: "pointer" }}
                   />
                 );
@@ -312,7 +353,7 @@ export function NatalChartWheel({ chart, onExploreItem, astrologerEligible }) {
                 const next = houseCusps[(index + 1) % houseCusps.length];
                 const labelPoint = polarPoint(center, center, houseLabelRadius, wrappedMidpoint(cusp, next));
                 return (
-                  <g key={`house-${index + 1}`} data-testid={`natal-chart-house-${index + 1}`} onClick={() => handleSelect(buildHouseItem(index + 1, placementsByHouse[index + 1]))} style={{ cursor: "pointer" }}>
+                  <g key={`house-${index + 1}`} data-testid={`natal-chart-house-${index + 1}`} onClick={() => handleSelect(buildHouseItem(index + 1, placementsByHouse[index + 1]))} onMouseEnter={() => handleHover(buildHouseItem(index + 1, placementsByHouse[index + 1]))} onMouseLeave={clearHover} style={{ cursor: "pointer" }}>
                     <line x1={start.x} x2={end.x} y1={start.y} y2={end.y} stroke={selectedHouseNumber === index + 1 ? "rgba(212,175,55,0.95)" : "rgba(212,175,55,0.45)"} strokeWidth={selectedHouseNumber === index + 1 ? "2.3" : "1.2"} />
                     <text fill={selectedHouseNumber === index + 1 ? "rgba(255,255,255,0.98)" : "rgba(212,175,55,0.86)"} fontFamily="JetBrains Mono, monospace" fontSize="12" textAnchor="middle" x={labelPoint.x} y={labelPoint.y}>{index + 1}</text>
                   </g>
@@ -341,6 +382,8 @@ export function NatalChartWheel({ chart, onExploreItem, astrologerEligible }) {
                     <line
                       data-testid={`natal-chart-aspect-hitarea-${index}`}
                       onClick={() => handleSelect(aspectItem)}
+                      onMouseEnter={() => handleHover(aspectItem)}
+                      onMouseLeave={clearHover}
                       stroke="transparent"
                       strokeWidth="14"
                       style={{ cursor: "pointer" }}
@@ -389,6 +432,8 @@ export function NatalChartWheel({ chart, onExploreItem, astrologerEligible }) {
                     data-testid={`natal-chart-placement-${placement.name.toLowerCase().replace(/\s+/g, "-")}`}
                     key={`placement-hitarea-${placement.name}`}
                     onClick={() => handleSelect(buildPlacementItem(placement))}
+                    onMouseEnter={() => handleHover(buildPlacementItem(placement))}
+                    onMouseLeave={clearHover}
                     style={{ left: `${(point.x / size) * 100}%`, top: `${(point.y / size) * 100}%` }}
                     type="button"
                   >
@@ -397,6 +442,21 @@ export function NatalChartWheel({ chart, onExploreItem, astrologerEligible }) {
                 );
               })}
             </div>
+
+            {educationItem ? (
+              <div className="absolute right-3 top-3 hidden w-[18rem] border border-primary/25 bg-black/90 p-4 shadow-[0_18px_45px_rgba(0,0,0,0.35)] xl:block" data-testid="natal-chart-hover-education-overlay">
+                <p className="text-[11px] uppercase tracking-[0.22em] text-primary">Chart education overlay</p>
+                <h4 className="mt-2 font-display text-2xl text-white" data-testid="natal-chart-hover-education-title">{educationItem.title}</h4>
+                <p className="mt-3 text-sm leading-7 text-slate-200" data-testid="natal-chart-hover-education-meaning">{educationItem.quickMeaning}</p>
+                <div className="mt-4 border border-white/10 bg-white/5 px-3 py-3 text-sm leading-7 text-slate-300" data-testid="natal-chart-hover-education-note">
+                  {educationItem.learningNote}
+                </div>
+                <Button className="mt-4 w-full border border-primary/45 bg-primary px-4 py-3 text-xs uppercase tracking-[0.24em] text-black hover:bg-primary/90" data-testid="natal-chart-hover-ask-button" onClick={() => onExploreItem?.(educationItem, { target: "dashboard-panel" })}>
+                  <Sparkles className="mr-2 h-4 w-4" />
+                  Ask the astrologer
+                </Button>
+              </div>
+            ) : null}
             </div>
 
             {selectedItem ? (
@@ -406,6 +466,20 @@ export function NatalChartWheel({ chart, onExploreItem, astrologerEligible }) {
                     <p className="text-[11px] uppercase tracking-[0.22em] text-primary">Selected chart point</p>
                     <h4 className="mt-2 font-display text-3xl text-white" data-testid="natal-chart-selected-detail-title">{selectedItem.title}</h4>
                     <p className="mt-2 max-w-2xl text-sm leading-7 text-slate-200" data-testid="natal-chart-selected-detail-summary">{selectedItem.summary}</p>
+                    <Button className="mt-4 w-full border border-primary/45 bg-primary px-5 py-3 text-xs uppercase tracking-[0.24em] text-black hover:bg-primary/90 md:hidden" data-testid="natal-chart-ask-astrologer-button-mobile-top" onClick={handleAsk}>
+                      <Sparkles className="mr-2 h-4 w-4" />
+                      {astrologerEligible ? "Ask now" : "Open astrologer"}
+                    </Button>
+                    <div className="mt-4 grid gap-3 md:grid-cols-2">
+                      <div className="border border-white/10 bg-black/25 px-4 py-4" data-testid="natal-chart-selected-detail-meaning">
+                        <p className="text-[11px] uppercase tracking-[0.22em] text-primary">Quick meaning</p>
+                        <p className="mt-2 text-sm leading-7 text-slate-200">{selectedItem.quickMeaning}</p>
+                      </div>
+                      <div className="border border-white/10 bg-black/25 px-4 py-4" data-testid="natal-chart-selected-detail-learning-note">
+                        <p className="text-[11px] uppercase tracking-[0.22em] text-primary">Mini learning note</p>
+                        <p className="mt-2 text-sm leading-7 text-slate-200">{selectedItem.learningNote}</p>
+                      </div>
+                    </div>
                   </div>
                   <Button className="w-full border border-primary/45 bg-primary px-5 py-3 text-xs uppercase tracking-[0.24em] text-black hover:bg-primary/90 md:w-auto" data-testid="natal-chart-ask-astrologer-button" onClick={handleAsk}>
                     <Sparkles className="mr-2 h-4 w-4" />
@@ -419,7 +493,7 @@ export function NatalChartWheel({ chart, onExploreItem, astrologerEligible }) {
           <div className="space-y-4" data-testid="natal-chart-wheel-sidebar">
             <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-1">
               {placements.map((placement) => (
-                <button className="border border-white/10 bg-black/25 px-4 py-4 text-left transition-colors hover:border-primary/40 hover:bg-primary/10" key={placement.name} data-testid={`natal-chart-legend-${placement.name.toLowerCase().replace(/\s+/g, "-")}`} onClick={() => handleSelect(buildPlacementItem(placement))} type="button">
+                <button className="border border-white/10 bg-black/25 px-4 py-4 text-left transition-colors hover:border-primary/40 hover:bg-primary/10" key={placement.name} data-testid={`natal-chart-legend-${placement.name.toLowerCase().replace(/\s+/g, "-")}`} onClick={() => handleSelect(buildPlacementItem(placement))} onMouseEnter={() => handleHover(buildPlacementItem(placement))} onMouseLeave={clearHover} type="button">
                   <p className="text-[11px] uppercase tracking-[0.24em] text-slate-500">{placement.name}</p>
                   <p className="mt-2 font-display text-2xl text-white">{placement.sign}</p>
                   <p className="mt-2 text-sm leading-7 text-slate-300">{formatPlacement(placement)}</p>
@@ -436,7 +510,7 @@ export function NatalChartWheel({ chart, onExploreItem, astrologerEligible }) {
                 {aspects.slice(0, 6).map((aspect, index) => {
                   const aspectItem = buildAspectItem(aspect, index);
                   return (
-                    <button className="border border-white/10 bg-white/5 px-4 py-3 text-left text-sm leading-7 text-slate-200 transition-colors hover:border-primary/40 hover:bg-primary/10" data-testid={`natal-chart-aspect-chip-${index}`} key={aspectItem.id} onClick={() => handleSelect(aspectItem)} type="button">
+                    <button className="border border-white/10 bg-white/5 px-4 py-3 text-left text-sm leading-7 text-slate-200 transition-colors hover:border-primary/40 hover:bg-primary/10" data-testid={`natal-chart-aspect-chip-${index}`} key={aspectItem.id} onClick={() => handleSelect(aspectItem)} onMouseEnter={() => handleHover(aspectItem)} onMouseLeave={clearHover} type="button">
                       {aspectItem.title}
                     </button>
                   );

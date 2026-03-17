@@ -139,15 +139,43 @@ def create_session_document(user_id: str, session_id: str) -> dict:
     return {
         "id": session_id,
         "user_id": user_id,
+        "title": "New chart conversation",
+        "preview": "",
+        "message_count": 0,
+        "last_focus_title": None,
         "messages": [],
         "created_at": now,
         "updated_at": now,
     }
 
 
+def build_session_title(prompt: str, focus_context: dict | None = None) -> str:
+    if focus_context and focus_context.get("title"):
+        return focus_context["title"]
+    compact = " ".join(prompt.strip().split())
+    return compact[:72] if len(compact) > 72 else compact
+
+
+def build_session_preview(reply: str) -> str:
+    compact = " ".join(reply.strip().split())
+    return compact[:160] if len(compact) > 160 else compact
+
+
+def serialise_session_list_item(session_doc: dict) -> dict:
+    return {
+        "session_id": session_doc["id"],
+        "title": session_doc.get("title") or "Untitled chart conversation",
+        "preview": session_doc.get("preview") or "",
+        "updated_at": session_doc.get("updated_at"),
+        "message_count": session_doc.get("message_count", len(session_doc.get("messages", []))),
+        "last_focus_title": session_doc.get("last_focus_title"),
+    }
+
+
 def serialise_session(session_doc: dict, current_tier: str) -> dict:
     return {
         "session_id": session_doc["id"],
+        "title": session_doc.get("title") or "Untitled chart conversation",
         "messages": session_doc.get("messages", []),
         "eligible": can_access_ai(current_tier),
         "current_tier": current_tier,
