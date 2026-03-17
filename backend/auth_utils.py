@@ -4,7 +4,8 @@ from typing import Optional
 
 from fastapi import Depends, HTTPException, status
 from fastapi.security import OAuth2PasswordBearer
-from jose import JWTError, jwt
+import jwt
+from jwt.exceptions import PyJWTError
 from passlib.context import CryptContext
 
 
@@ -62,7 +63,7 @@ async def get_current_user(token: str = Depends(oauth2_scheme)) -> dict:
         user_id: Optional[str] = payload.get("sub")
         if not user_id:
             raise credentials_exception
-    except JWTError as exc:
+    except PyJWTError as exc:
         raise credentials_exception from exc
 
     if _db is None:
