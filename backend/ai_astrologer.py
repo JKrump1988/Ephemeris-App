@@ -1,7 +1,12 @@
+import logging
 import os
 from datetime import datetime, timezone
 
 from emergentintegrations.llm.chat import LlmChat, UserMessage
+from fastapi import HTTPException, status
+
+
+logger = logging.getLogger(__name__)
 
 
 ALLOWED_TIERS = {"blueprint", "master"}
@@ -120,18 +125,27 @@ async def generate_astrologer_reply(
     prompt: str,
     focus_context: dict | None = None,
 ) -> str:
-    initial_messages = [{"role": "system", "content": build_system_message(user, chart)}]
-    initial_messages.extend(
-        {"role": item["role"], "content": item["content"]}
-        for item in session_messages[-12:]
-    )
-    chat = LlmChat(
-        api_key=os.environ["EMERGENT_LLM_KEY"],
-        session_id=session_id,
-        system_message=initial_messages[0]["content"],
-        initial_messages=initial_messages,
-    ).with_model("openai", "gpt-5.2")
-    return await chat.send_message(UserMessage(text=f"{build_focus_prefix(focus_context)}{prompt}"))
+    try:
+        initial_messages = [{"role": "system", "content": build_system_message(user, chart)}]
+        initial_messages.extend(
+            {"role": item["role"], "content": item["content"]}
+            for item in session_messages[-12:]
+        )
+        chat = LlmChat(
+            api_key=os.environ["EMERGENT_LLM_KEY"],
+            session_id=session_id,
+            system_message=initial_messages[0]["content"],
+            initial_messages=initial_messages,
+        ).with_model("openai", "gpt-5.2")
+        return await chat.send_message(UserMessage(text=f"{build_focus_prefix(focus_context)}{prompt}"))
+    except HTTPException:
+        raise
+    except Exception as exc:
+        logger.error("AI astrologer reply failed for session %s: %s", session_id, exc, exc_info=True)
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            detail="The AI Astrologer is temporarily unavailable. Please try again later.",
+        ) from exc
 
 
 def create_session_document(user_id: str, session_id: str) -> dict:

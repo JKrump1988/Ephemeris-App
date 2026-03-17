@@ -51,6 +51,13 @@ from platform_content import PLATFORM_OVERVIEW, build_tier_access
 ROOT_DIR = Path(__file__).parent
 load_dotenv(ROOT_DIR / '.env')
 
+# Configure logging before anything else
+logging.basicConfig(
+    level=logging.INFO,
+    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
+)
+logger = logging.getLogger(__name__)
+
 # MongoDB connection
 mongo_url = os.environ['MONGO_URL']
 client = AsyncIOMotorClient(mongo_url)
@@ -83,14 +90,14 @@ async def root():
 
 @api_router.post("/auth/register", response_model=TokenResponse)
 async def register_user(payload: UserCreate):
-    existing = await db.users.find_one({"email": payload.email.lower()}, {"_id": 0})
+    existing = await db.users.find_one({"email": payload.email.lower().strip()}, {"_id": 0})
     if existing:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="An account with this email already exists")
 
     now = datetime.now(timezone.utc).isoformat()
     user_doc = {
         "id": str(uuid.uuid4()),
-        "email": payload.email.lower(),
+        "email": payload.email.lower().strip(),
         "name": payload.name,
         "password_hash": get_password_hash(payload.password),
         "subscription_tier": "snapshot",
@@ -253,10 +260,18 @@ async def read_checkout_status(session_id: str, request: Request, current_user: 
 
 @api_router.post("/webhook/stripe")
 async def stripe_webhook(request: Request):
-    payload_bytes = await request.body()
-    webhook_response = await get_checkout_client(request).handle_webhook(payload_bytes, request.headers.get("Stripe-Signature"))
-    await process_webhook_event(db, webhook_response.model_dump())
-    return {"received": True, "event_type": webhook_response.event_type}
+    try:
+        payload_bytes = await request.body()
+        webhook_response = await get_checkout_client(request).handle_webhook(
+            payload_bytes,
+            request.headers.get("Stripe-Signature"),
+        )
+        await process_webhook_event(db, webhook_response.model_dump())
+        logger.info("Stripe webhook processed: %s", webhook_response.event_type)
+        return {"received": True, "event_type": webhook_response.event_type}
+    except Exception as exc:
+        logger.error("Stripe webhook processing failed: %s", exc, exc_info=True)
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Webhook processing failed")
 
 
 @api_router.get("/academy/catalog", response_model=AcademyCatalogResponse)
@@ -370,13 +385,6 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
-
-# Configure logging
-logging.basicConfig(
-    level=logging.INFO,
-    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
-)
-logger = logging.getLogger(__name__)
 
 @app.on_event("shutdown")
 async def shutdown_db_client():
