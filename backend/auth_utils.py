@@ -45,7 +45,7 @@ def create_access_token(subject: str) -> str:
 async def authenticate_user(email: str, password: str) -> Optional[dict]:
     if _db is None:
         raise RuntimeError("Database not configured for auth")
-    user = await _db.users.find_one({"email": email.lower()}, {"_id": 0})
+    user = await _db.users.find_one({"email": email.lower().strip()}, {"_id": 0})
     if not user or not verify_password(password, user["password_hash"]):
         return None
     return user

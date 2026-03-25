@@ -1,3 +1,4 @@
+import logging
 import os
 import uuid
 from datetime import datetime, timezone
@@ -7,6 +8,9 @@ from fastapi import HTTPException, Request, status
 from emergentintegrations.payments.stripe.checkout import CheckoutSessionRequest, StripeCheckout
 
 from platform_content import TIER_LABELS, TIER_SEQUENCE
+
+
+logger = logging.getLogger(__name__)
 
 
 TIER_PRICING = {
@@ -175,6 +179,7 @@ async def sync_checkout_status(db, request: Request, session_id: str, current_us
 async def process_webhook_event(db, webhook_payload: dict):
     session_id = webhook_payload.get("session_id")
     if not session_id:
+        logger.warning("Received Stripe webhook without session_id: event_type=%s", webhook_payload.get("event_type"))
         return
     now = datetime.now(timezone.utc).isoformat()
     await db.payment_transactions.update_one(
