@@ -8,7 +8,7 @@ from timezonefinder import TimezoneFinder
 
 
 tf = TimezoneFinder(in_memory=True)
-EPHEMERIS_FLAGS = swe.FLG_MOSEPH | swe.FLG_SPEED
+EPHEMERIS_FLAGS = getattr(swe, "FLG_MOSEPH", 0) | getattr(swe, "FLG_SPEED", 0)
 REQUIRED_SWISS_FUNCTIONS = ("calc_ut", "houses_ex", "julday")
 REQUIRED_SWISS_CONSTANTS = ("FLG_MOSEPH", "FLG_SPEED")
 
