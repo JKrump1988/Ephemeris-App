@@ -23,7 +23,7 @@ This page describes the local setup flow for Ephemeral based on repository code 
 ### Backend
 
 ```bash
-cd /home/runner/work/Ephemeris-App/Ephemeris-App/backend
+cd backend
 python -m venv .venv
 source .venv/bin/activate
 pip install -r requirements.txt
@@ -32,7 +32,7 @@ pip install -r requirements.txt
 ### Frontend
 
 ```bash
-cd /home/runner/work/Ephemeris-App/Ephemeris-App/frontend
+cd frontend
 npm install
 ```
 
@@ -48,14 +48,14 @@ Set backend and frontend environment variables before starting services.
 ### Start backend
 
 ```bash
-cd /home/runner/work/Ephemeris-App/Ephemeris-App/backend
+cd backend
 uvicorn server:app --host 0.0.0.0 --port 8000 --reload
 ```
 
 ### Start frontend
 
 ```bash
-cd /home/runner/work/Ephemeris-App/Ephemeris-App/frontend
+cd frontend
 npm start
 ```
 
