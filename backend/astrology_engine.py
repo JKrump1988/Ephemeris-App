@@ -127,7 +127,7 @@ def swiss_ephemeris_contract() -> dict:
     return {
         "engine": "Swiss Ephemeris (pyswisseph)",
         "mode": "Moshier",
-        "flags": ["FLG_MOSEPH", "FLG_SPEED"],
+        "flags": list(REQUIRED_SWISS_CONSTANTS),
     }
 
 
