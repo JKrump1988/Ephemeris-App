@@ -1,4 +1,5 @@
 from datetime import datetime, timezone
+from functools import lru_cache
 from typing import Dict, List, Optional
 from zoneinfo import ZoneInfo
 
@@ -9,6 +10,8 @@ from timezonefinder import TimezoneFinder
 
 tf = TimezoneFinder(in_memory=True)
 EPHEMERIS_FLAGS = swe.FLG_MOSEPH | swe.FLG_SPEED
+REQUIRED_SWISS_FUNCTIONS = ("calc_ut", "houses_ex", "julday")
+REQUIRED_SWISS_CONSTANTS = ("FLG_MOSEPH", "FLG_SPEED")
 
 SIGNS = [
     "Aries",
@@ -110,9 +113,11 @@ ASPECTS = [
 ]
 
 
+@lru_cache(maxsize=1)
 def ensure_swiss_ephemeris_ready() -> None:
-    required_attributes = ("calc_ut", "houses_ex", "julday", "FLG_MOSEPH", "FLG_SPEED")
-    missing_attributes = [name for name in required_attributes if not hasattr(swe, name)]
+    missing_functions = [name for name in REQUIRED_SWISS_FUNCTIONS if not hasattr(swe, name)]
+    missing_constants = [name for name in REQUIRED_SWISS_CONSTANTS if not hasattr(swe, name)]
+    missing_attributes = [*missing_functions, *missing_constants]
     if missing_attributes:
         raise RuntimeError(
             "Swiss Ephemeris is required for this application. Missing attributes: "
