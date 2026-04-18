@@ -26,11 +26,11 @@ Frontend scripts from `frontend/package.json`:
 
 ```bash
 # Backend
-cd /home/runner/work/Ephemeris-App/Ephemeris-App/backend
+cd backend
 python -m pytest tests -q
 
 # Frontend
-cd /home/runner/work/Ephemeris-App/Ephemeris-App/frontend
+cd frontend
 npm run build
 CI=true npm test -- --watch=false
 ```
