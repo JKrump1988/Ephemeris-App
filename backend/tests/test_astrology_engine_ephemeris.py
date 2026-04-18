@@ -1,7 +1,7 @@
 from astrology_engine import EPHEMERIS_FLAGS, ensure_swiss_ephemeris_ready, swe, swiss_ephemeris_contract
 
 
-def test_ephemeris_flags_require_moshier_and_speed():
+def test_ephemeris_flags_include_moshier_and_speed():
     assert (EPHEMERIS_FLAGS & swe.FLG_MOSEPH) != 0
     assert (EPHEMERIS_FLAGS & swe.FLG_SPEED) != 0
 

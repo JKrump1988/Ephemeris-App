@@ -1,5 +1,4 @@
 from datetime import datetime, timezone
-from functools import lru_cache
 from typing import Dict, List, Optional
 from zoneinfo import ZoneInfo
 
@@ -113,7 +112,6 @@ ASPECTS = [
 ]
 
 
-@lru_cache(maxsize=1)
 def ensure_swiss_ephemeris_ready() -> None:
     missing_functions = [name for name in REQUIRED_SWISS_FUNCTIONS if not hasattr(swe, name)]
     missing_constants = [name for name in REQUIRED_SWISS_CONSTANTS if not hasattr(swe, name)]
