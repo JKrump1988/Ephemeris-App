@@ -186,6 +186,7 @@ def planet_payload(name: str, longitude: float, speed: float, house: Optional[in
 
 
 def calculate_placements(jd_ut: float, cusps: Optional[List[float]] = None) -> Dict[str, dict]:
+    ensure_swiss_ephemeris_ready()
     placements = {}
     for name, code in PLANET_CODES:
         values, _ = swe.calc_ut(jd_ut, code, EPHEMERIS_FLAGS)
@@ -198,6 +199,7 @@ def calculate_placements(jd_ut: float, cusps: Optional[List[float]] = None) -> D
 
 
 def calculate_houses(jd_ut: float, latitude: float, longitude: float):
+    ensure_swiss_ephemeris_ready()
     cusps, ascmc = swe.houses_ex(jd_ut, latitude, longitude, b"P")
     house_cusps = [round(cusp, 4) for cusp in cusps]
     asc = ascmc[0]
