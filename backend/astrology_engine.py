@@ -8,6 +8,7 @@ from timezonefinder import TimezoneFinder
 
 
 tf = TimezoneFinder(in_memory=True)
+EPHEMERIS_FLAGS = swe.FLG_MOSEPH | swe.FLG_SPEED
 
 SIGNS = [
     "Aries",
@@ -109,6 +110,24 @@ ASPECTS = [
 ]
 
 
+def ensure_swiss_ephemeris_ready() -> None:
+    required_attributes = ("calc_ut", "houses_ex", "julday", "FLG_MOSEPH", "FLG_SPEED")
+    missing_attributes = [name for name in required_attributes if not hasattr(swe, name)]
+    if missing_attributes:
+        raise RuntimeError(
+            "Swiss Ephemeris is required for this application. Missing attributes: "
+            + ", ".join(missing_attributes)
+        )
+
+
+def swiss_ephemeris_contract() -> dict:
+    return {
+        "engine": "Swiss Ephemeris (pyswisseph)",
+        "mode": "Moshier",
+        "flags": ["FLG_MOSEPH", "FLG_SPEED"],
+    }
+
+
 def sign_from_longitude(longitude: float) -> str:
     return SIGNS[int(longitude // 30) % 12]
 
@@ -167,10 +186,9 @@ def planet_payload(name: str, longitude: float, speed: float, house: Optional[in
 
 
 def calculate_placements(jd_ut: float, cusps: Optional[List[float]] = None) -> Dict[str, dict]:
-    flags = swe.FLG_MOSEPH | swe.FLG_SPEED
     placements = {}
     for name, code in PLANET_CODES:
-        values, _ = swe.calc_ut(jd_ut, code, flags)
+        values, _ = swe.calc_ut(jd_ut, code, EPHEMERIS_FLAGS)
         house = house_for_longitude(values[0], cusps) if cusps else None
         placements[name] = planet_payload(name, values[0], values[3], house)
 
@@ -274,13 +292,13 @@ def chart_focus(placements: Dict[str, dict]) -> List[dict]:
 
 
 def build_transits(natal_placements: Dict[str, dict]) -> Dict[str, List[dict]]:
+    ensure_swiss_ephemeris_ready()
     now = datetime.now(timezone.utc)
     jd_now = swe.julday(now.year, now.month, now.day, decimal_hours(now))
-    flags = swe.FLG_MOSEPH | swe.FLG_SPEED
 
     transits = {}
     for name, code in TRANSIT_CODES:
-        values, _ = swe.calc_ut(jd_now, code, flags)
+        values, _ = swe.calc_ut(jd_now, code, EPHEMERIS_FLAGS)
         transits[name] = planet_payload(name, values[0], values[3], None)
 
     transit_aspects = []
@@ -343,6 +361,7 @@ def search_locations(query: str) -> List[dict]:
 
 
 def generate_natal_chart(chart_input: dict) -> dict:
+    ensure_swiss_ephemeris_ready()
     utc_dt, approximate = build_utc_datetime(
         chart_input["birth_date"],
         chart_input.get("birth_time"),
@@ -387,6 +406,7 @@ def generate_natal_chart(chart_input: dict) -> dict:
             "local_timezone": chart_input["timezone"],
             "approximate_time_used": approximate,
             "note": note,
+            "calculation_engine": swiss_ephemeris_contract(),
         },
         "placements": placements,
         "houses": houses,
