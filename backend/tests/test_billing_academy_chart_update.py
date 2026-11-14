@@ -162,8 +162,8 @@ def test_put_chart_current_overwrites_existing_chart(authed_client, api_base_url
 
     update_payload = {
         "birth_date": "1990-10-01",
-        "birth_time": None,
-        "birth_time_known": False,
+        "birth_time": "07:20",
+        "birth_time_known": True,
         "location_name": "Tokyo, Japan",
         "latitude": 35.6762,
         "longitude": 139.6503,
@@ -174,16 +174,35 @@ def test_put_chart_current_overwrites_existing_chart(authed_client, api_base_url
     updated = update_response.json()
     assert updated["id"] == original["id"]
     assert updated["birth_date"] == "1990-10-01"
-    assert updated["birth_time"] is None
+    assert updated["birth_time"] == "07:20"
     assert updated["location_name"] == "Tokyo, Japan"
-    assert updated["approximate_time_used"] is True
+    assert updated["approximate_time_used"] is False
 
     get_response = authed_client.get(f"{api_base_url}/api/chart/current", timeout=30)
     assert get_response.status_code == 200
     fetched = get_response.json()
     assert fetched["id"] == original["id"]
     assert fetched["location_name"] == "Tokyo, Japan"
-    assert fetched["birth_time"] is None
+    assert fetched["birth_time"] == "07:20"
+
+
+def test_unknown_birth_time_does_not_overwrite_saved_chart(authed_client, api_base_url, chart_seed_payload):
+    before = authed_client.get(f"{api_base_url}/api/chart/current", timeout=30)
+    assert before.status_code == 200
+    update_payload = {
+        "birth_date": "1990-10-01",
+        "birth_time": None,
+        "birth_time_known": False,
+        "location_name": "Tokyo, Japan",
+        "latitude": 35.6762,
+        "longitude": 139.6503,
+        "timezone": "Asia/Tokyo",
+    }
+    rejected = authed_client.put(f"{api_base_url}/api/chart/current", json=update_payload, timeout=60)
+    assert rejected.status_code == 422
+    after = authed_client.get(f"{api_base_url}/api/chart/current", timeout=30)
+    assert after.status_code == 200
+    assert after.json() == before.json()
 
 
 def test_existing_daily_and_snapshot_flows_still_work(authed_client, api_base_url):

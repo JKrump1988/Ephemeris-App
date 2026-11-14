@@ -1,0 +1,119 @@
+{
+  "task_date": "2026-11-13",
+  "task_timezone": "America/Los_Angeles",
+  "base_repository": "https://github.com/JKrump1988/Ephemeris-App",
+  "base_commit": "7b6f215d4cc34e36882a4fecb4a39ab1398f7102",
+  "scope": "Profile natal calculation contract, first implementation slice",
+  "status": "unit_and_reference_executable_checks_passed; draft review only",
+  "ready_for_release": false,
+  "runtime": {
+    "python": "3.12.14",
+    "pyswisseph_package": "2.10.3.2",
+    "swiss_library": "2.10.03",
+    "pydantic": "2.13.4",
+    "email_validator": "2.3.0",
+    "binding_built_from_verified_upstream_source": true,
+    "wrapper_source_commit": "91ec65631badc7faf4a4b913570c944a4c1b101d",
+    "swiss_source_commit": "696bda432298d482d27e67a0cf1238920301a7dd"
+  },
+  "unit_tests": [
+    {
+      "suite": "test_birth_time.py",
+      "run": 22,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0,
+      "passed": true
+    },
+    {
+      "suite": "test_calculation_contract.py",
+      "run": 21,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0,
+      "passed": true
+    },
+    {
+      "suite": "test_chart_input_model.py",
+      "run": 15,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0,
+      "passed": true
+    },
+    {
+      "suite": "test_location_resource.py",
+      "run": 1,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0,
+      "passed": true
+    }
+  ],
+  "total_tests": 59,
+  "reference_kind": "upstream_swetest_executable_agreement",
+  "reference_limit": "Same underlying Swiss Ephemeris astronomy library; not an independent astronomical accuracy validation. Values are decimal fields printed by the upstream executable.",
+  "reference_fixture_sha256": "199322809c21d85671140ab35b2aa8fae17531674c4038fda639be3f2f8a939a",
+  "comparison_tolerances": {
+    "angles_deg": 1e-06,
+    "longitude_speed_deg_per_day": 1e-06,
+    "distance_au": 2e-09
+  },
+  "reference_cases": [
+    {
+      "case": "j2000_greenwich",
+      "computed_bodies": 11,
+      "house_cusps": 12,
+      "angles": 2,
+      "max_angle_difference_degrees": 4.8052527290565195e-08,
+      "max_longitude_speed_difference_degrees_per_day": 4.6995061689369955e-08,
+      "max_distance_difference_au": 4.154419031010548e-10,
+      "raw_reference_hash_verified": true
+    },
+    {
+      "case": "southern_latitude",
+      "computed_bodies": 11,
+      "house_cusps": 12,
+      "angles": 2,
+      "max_angle_difference_degrees": 4.620142135536298e-08,
+      "max_longitude_speed_difference_degrees_per_day": 4.86563859203315e-08,
+      "max_distance_difference_au": 4.057838509652356e-10,
+      "raw_reference_hash_verified": true
+    },
+    {
+      "case": "synthetic_fold_late_instant",
+      "computed_bodies": 11,
+      "house_cusps": 12,
+      "angles": 2,
+      "max_angle_difference_degrees": 4.9654431677481625e-08,
+      "max_longitude_speed_difference_degrees_per_day": 4.935055919474962e-08,
+      "max_distance_difference_au": 4.689155730375205e-10,
+      "raw_reference_hash_verified": true
+    }
+  ],
+  "strict_incomplete_data_check": {
+    "test": "incomplete actual Swiss data: planetary file present, lunar file absent",
+    "result": "rejected",
+    "exception_type": "EphemerisUnavailableError",
+    "message": "North Node requested swiss but returned moshier; fallback is not permitted.",
+    "complete_file_backed_chart_verified": false
+  },
+  "review": {
+    "spec_axis": "No blocking finding for the scoped slice; release limitations retained.",
+    "standards_axis": "Repeated geocoding resource initialization identified and fixed with shared initialization and lookup lock; concurrency regression test passes."
+  },
+  "remaining_gates": {
+    "complete_swiss_file_reference_verification": "blocked: applicable lunar data file semo_18.se1 not available",
+    "isolated_http_database_tests": "not run: isolated API and database not configured",
+    "ui_offset_resolution_and_unknown_time_flow": "not implemented in this slice",
+    "legacy_saved_chart_migration": "not performed",
+    "independent_astronomical_reference_comparison": "not performed",
+    "production_rollout": "not performed"
+  },
+  "notes": [
+    "All three numerical reference cases explicitly use Moshier inside the Swiss Ephemeris library.",
+    "No personal birth records are included in fixtures.",
+    "Passing rejection tests is not evidence of successful complete file-backed computation.",
+    "The retained legacy response includes current transits, so a Swiss deployment also needs data covering the current date."
+  ]
+}

@@ -15,6 +15,9 @@ This page lists environment variables used directly in the current codebase.
 | `STRIPE_API_KEY` | Yes (billing) | `backend/payments.py` | Stripe checkout/webhook client |
 | `EMERGENT_LLM_KEY` | Yes (AI chat) | `backend/ai_astrologer.py` | LLM API key for AI Astrologer |
 | `CORS_ORIGINS` | Optional | `backend/server.py` | Allowed origins list (comma-separated) |
+| `EPHEMERIS_BACKEND` | Optional; defaults to `swiss` | `backend/ephemeris_runtime.py` | `swiss` requires file-backed calculations; `moshier` explicitly selects the analytical diagnostic backend. Neither mode permits fallback. |
+| `EPHEMERIS_PATH` | Required for `swiss` | `backend/ephemeris_runtime.py` | Absolute directory containing the applicable planetary and lunar `.se1` files. |
+| `SE_EPHE_PATH` | Optional upstream alternative | Swiss Ephemeris | If set alongside `EPHEMERIS_PATH`, the values must match. Use a single absolute directory. |
 
 ## Frontend environment variables
 
@@ -34,6 +37,7 @@ This page lists environment variables used directly in the current codebase.
 - [Local Development Setup](./local-development.md)
 - [Runtime and Operations](../operations/runtime-operations.md)
 - [Backend API Reference](../reference/api-reference.md)
+- [Profile Calculation Contract](../developer/profile-calculation-contract.md)
 
 ## Needs Verification
 
