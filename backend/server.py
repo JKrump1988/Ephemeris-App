@@ -22,6 +22,8 @@ from ai_astrologer import (
 )
 from auth_utils import authenticate_user, create_access_token, get_current_user, get_password_hash, set_database
 from astrology_engine import generate_natal_chart, search_locations
+from birth_time import BirthTimeError
+from ephemeris_runtime import EphemerisUnavailableError
 from interpretation_engine import build_daily_insight, build_reading
 from models import (
     AcademyCatalogResponse,
@@ -138,14 +140,20 @@ async def location_search(
 async def create_or_update_chart(payload: ChartCreate, current_user: dict = Depends(get_current_user)):
     prepared_chart_input = {
         "birth_date": payload.birth_date.isoformat(),
-        "birth_time": payload.birth_time.strftime("%H:%M") if payload.birth_time else None,
+        "birth_time": payload.birth_time.isoformat(timespec="minutes" if not payload.birth_time.second and not payload.birth_time.microsecond else "auto") if payload.birth_time else None,
         "birth_time_known": payload.birth_time_known,
         "location_name": payload.location_name,
         "latitude": payload.latitude,
         "longitude": payload.longitude,
         "timezone": payload.timezone,
+        "utc_offset": payload.utc_offset,
     }
-    chart_data = await asyncio.to_thread(generate_natal_chart, prepared_chart_input)
+    try:
+        chart_data = await asyncio.to_thread(generate_natal_chart, prepared_chart_input)
+    except BirthTimeError as exc:
+        raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail=str(exc)) from exc
+    except EphemerisUnavailableError as exc:
+        raise HTTPException(status_code=status.HTTP_503_SERVICE_UNAVAILABLE, detail=str(exc)) from exc
     now = datetime.now(timezone.utc).isoformat()
     existing = await db.charts.find_one({"user_id": current_user["id"]}, {"_id": 0, "id": 1, "created_at": 1})
     chart_doc = {
@@ -160,6 +168,7 @@ async def create_or_update_chart(payload: ChartCreate, current_user: dict = Depe
         "latitude": payload.latitude,
         "longitude": payload.longitude,
         "timezone": payload.timezone,
+        "utc_offset": payload.utc_offset,
         "chart": chart_data,
     }
     await db.charts.update_one({"user_id": current_user["id"]}, {"$set": chart_doc}, upsert=True)
@@ -177,6 +186,7 @@ async def create_or_update_chart(payload: ChartCreate, current_user: dict = Depe
         "timezone": chart_doc["timezone"],
         "birth_date": chart_doc["birth_date"],
         "birth_time": chart_doc["birth_time"],
+        "utc_offset": chart_doc.get("utc_offset"),
         "tier_access": build_tier_access(current_user["subscription_tier"]),
         "chart": chart_doc["chart"],
     }
@@ -203,6 +213,7 @@ async def read_current_chart(current_user: dict = Depends(get_current_user)):
         "timezone": chart_doc["timezone"],
         "birth_date": chart_doc["birth_date"],
         "birth_time": chart_doc["birth_time"],
+        "utc_offset": chart_doc.get("utc_offset"),
         "tier_access": build_tier_access(current_user["subscription_tier"]),
         "chart": chart,
     }

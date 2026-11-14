@@ -23,6 +23,7 @@ This documentation set describes the current Ephemeral product, architecture, AP
 - [Architecture Overview](./developer/architecture-overview.md)
 - [Codebase Structure](./developer/codebase-structure.md)
 - [Testing and Quality Checks](./developer/testing-and-quality.md)
+- [Profile Calculation Contract](./developer/profile-calculation-contract.md)
 
 ## Operations and support
 
