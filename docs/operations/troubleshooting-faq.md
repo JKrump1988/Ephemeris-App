@@ -49,7 +49,11 @@ No. The app and AI prompt framing position astrology as reflective guidance, not
 
 ### Do users need birth time?
 
-No. If unknown, backend uses `12:00 UT` and marks house/Ascendant precision as approximate.
+Yes. This version requires a known birth time for new calculations and regeneration.
+The input accepts 24-hour hours and minutes, with optional seconds and up to six
+fractional-second digits. Missing or unknown times are rejected without substituting noon.
+Previously saved approximate charts remain stored; the editor requires a known time
+before regenerating them. See [Account and Chart Management](../user-guides/account-and-chart-management.md).
 
 ### Does AI Astrologer recalculate the chart each message?
 

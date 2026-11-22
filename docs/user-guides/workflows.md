@@ -21,10 +21,12 @@ This page describes the primary user journey through authentication, onboarding,
 
 ## Onboarding workflow
 
-- User provides birth date, optional birth time, and location search query
+- User provides birth date, a known birth time, and location search query
+- Birth time starts empty and accepts 24-hour `HH:MM` or `HH:MM:SS`, with up to six fractional-second digits after seconds
 - Backend location search returns location + timezone options
 - Saving chart calls `/api/chart`
-- If birth time is unknown, app uses `12:00 UT` approximation
+- Missing or invalid birth time is blocked before saving; this version does not offer unknown-time calculations or substitute noon
+- Repeated local times still need API offset selection, which remains an input-UI release gate in the [Profile calculation contract](../developer/profile-calculation-contract.md)
 
 ## Dashboard workflow
 

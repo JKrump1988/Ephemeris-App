@@ -6,13 +6,13 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { api } from "@/lib/api";
+import { isValidBirthTime } from "@/lib/birthTime";
 
 
 export function BirthChartEditor({ chart, onUpdated }) {
   const [isEditing, setIsEditing] = useState(false);
   const [birthDate, setBirthDate] = useState("");
-  const [birthTime, setBirthTime] = useState("12:00");
-  const [birthTimeKnown, setBirthTimeKnown] = useState(true);
+  const [birthTime, setBirthTime] = useState("");
   const [locationQuery, setLocationQuery] = useState("");
   const [locationResults, setLocationResults] = useState([]);
   const [selectedLocation, setSelectedLocation] = useState(null);
@@ -22,8 +22,7 @@ export function BirthChartEditor({ chart, onUpdated }) {
   useEffect(() => {
     if (!chart) return;
     setBirthDate(chart.birth_date || "");
-    setBirthTime(chart.birth_time || "12:00");
-    setBirthTimeKnown(Boolean(chart.birth_time));
+    setBirthTime(chart.approximate_time_used ? "" : (chart.birth_time ?? ""));
     setLocationQuery(chart.location_name || "");
     setSelectedLocation({
       id: "current-chart-location",
@@ -58,13 +57,17 @@ export function BirthChartEditor({ chart, onUpdated }) {
       toast.error("Birth date and location are required to regenerate the chart.");
       return;
     }
+    if (!isValidBirthTime(birthTime)) {
+      toast.error("Enter a known birth time in 24-hour HH:MM format. Optional seconds may include up to six decimal places.");
+      return;
+    }
 
     setSaving(true);
     try {
       const response = await api.put("/chart/current", {
         birth_date: birthDate,
-        birth_time: birthTimeKnown ? `${birthTime}:00` : null,
-        birth_time_known: birthTimeKnown,
+        birth_time: birthTime,
+        birth_time_known: true,
         location_name: selectedLocation.label,
         latitude: selectedLocation.latitude,
         longitude: selectedLocation.longitude,
@@ -106,14 +109,28 @@ export function BirthChartEditor({ chart, onUpdated }) {
               </div>
               <div className="space-y-2">
                 <label className="text-[11px] uppercase tracking-[0.24em] text-slate-400" htmlFor="editor-birth-time">Birth time</label>
-                <Input className="h-12 border-white/10 bg-white/5 text-white disabled:opacity-40" data-testid="editor-birth-time-input" disabled={!birthTimeKnown} id="editor-birth-time" onChange={(event) => setBirthTime(event.target.value)} type="time" value={birthTime} />
+                <Input
+                  aria-describedby="editor-birth-time-help"
+                  autoComplete="off"
+                  className="h-12 border-white/10 bg-white/5 text-white placeholder:text-slate-500"
+                  data-testid="editor-birth-time-input"
+                  id="editor-birth-time"
+                  onChange={(event) => setBirthTime(event.target.value)}
+                  placeholder="07:20 or 07:20:27.123456"
+                  required
+                  spellCheck={false}
+                  type="text"
+                  value={birthTime}
+                />
               </div>
             </div>
 
-            <label className="flex items-center gap-3 border border-white/10 bg-black/25 px-4 py-4 text-sm text-slate-200" data-testid="editor-unknown-birth-time-toggle">
-              <input checked={!birthTimeKnown} className="h-4 w-4 accent-[#D4AF37]" onChange={(event) => setBirthTimeKnown(!event.target.checked)} type="checkbox" />
-              Birth time unknown — use 12:00 UT and mark ascendant and houses as approximate.
-            </label>
+            <p className="border border-white/10 bg-black/25 px-4 py-4 text-sm leading-7 text-slate-200" data-testid="editor-birth-time-help" id="editor-birth-time-help">
+              {chart?.approximate_time_used
+                ? "This saved chart uses an approximate time. Enter a known birth time before regenerating it. "
+                : "This version requires a known birth time. "}
+              Enter hours and minutes in 24-hour format; include seconds and fractional seconds if recorded.
+            </p>
 
             <div className="space-y-3">
               <label className="text-[11px] uppercase tracking-[0.24em] text-slate-400" htmlFor="editor-location-query">Birth location</label>

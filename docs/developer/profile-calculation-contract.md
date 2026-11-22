@@ -114,8 +114,9 @@ content from the Profile response is a subsequent integration decision.
 - Unknown birth times are now rejected for new calculations. Existing stored
   charts are not retroactively recalculated by this patch.
 - The API accepts an optional `utc_offset` and returns the supplied value with
-  a saved chart. The input UI still needs an offset-selection control and an
-  update to its former unknown-time option before release.
+  a saved chart. The input UI requires a known time and preserves the complete
+  time string, including up to six fractional-second digits. It still needs
+  an offset-selection control before release.
 - Longitude/degree values now retain precision. Display formatting belongs in
   the client; clients should not rely on a fixed count of decimal places.
 
