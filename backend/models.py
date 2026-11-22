@@ -1,7 +1,9 @@
 from datetime import date, time
 from typing import List, Literal, Optional
 
-from pydantic import BaseModel, ConfigDict, EmailStr, Field, model_validator
+from pydantic import BaseModel, ConfigDict, EmailStr, Field, StrictBool, field_validator, model_validator
+
+from birth_time import parse_birth_time, resolve_birth_time
 
 
 TierName = Literal["snapshot", "profile", "blueprint", "master"]
@@ -57,16 +59,31 @@ class LocationSearchResponse(BaseModel):
 class ChartCreate(BaseModel):
     birth_date: date
     birth_time: Optional[time] = None
-    birth_time_known: bool = True
+    birth_time_known: StrictBool = True
     location_name: str = Field(min_length=2, max_length=140)
-    latitude: float
-    longitude: float
+    latitude: float = Field(ge=-90, le=90, allow_inf_nan=False, strict=True)
+    longitude: float = Field(ge=-180, le=180, allow_inf_nan=False, strict=True)
     timezone: str
+    utc_offset: Optional[str] = None
+
+    @field_validator("birth_time", mode="before")
+    @classmethod
+    def validate_original_time(cls, value):
+        if isinstance(value, time):
+            if value.tzinfo is not None:
+                raise ValueError("birth_time must be local civil time without an embedded UTC offset")
+            return value
+        return parse_birth_time(value)
 
     @model_validator(mode="after")
     def validate_birth_time(self):
-        if self.birth_time_known and self.birth_time is None:
-            raise ValueError("birth_time is required when birth_time_known is true")
+        resolve_birth_time(
+            self.birth_date.isoformat(),
+            self.birth_time.isoformat() if self.birth_time else None,
+            self.birth_time_known,
+            self.timezone,
+            self.utc_offset,
+        )
         return self
 
 
@@ -90,6 +107,7 @@ class ChartResponse(BaseModel):
     timezone: str
     birth_date: str
     birth_time: Optional[str]
+    utc_offset: Optional[str] = None
     tier_access: List[TierAccess]
     chart: dict
 

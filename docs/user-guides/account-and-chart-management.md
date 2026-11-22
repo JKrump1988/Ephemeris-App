@@ -19,16 +19,25 @@ This page explains account profile display and chart update/regeneration behavio
 `BirthChartEditor` on account page supports chart overwrite via `/api/chart/current`.
 
 - User can change date/time/location
-- User can mark birth time unknown
+- A known birth time is required before regeneration
+- The time field accepts 24-hour `HH:MM` or `HH:MM:SS`, with up to six fractional-second digits after seconds
+- The editor preserves the complete time when only the date or location changes
 - Regeneration recomputes chart and updates all dependent reading layers
 
-## Approximate-time behavior
+## Previously saved approximate charts
 
-If birth time is unknown:
+An existing chart may have been calculated with an approximate time under an older version.
+Opening the editor does not change that saved chart. If the saved time is missing or the
+chart is marked approximate, the editor leaves the time field empty and requires a known
+birth time before regeneration. It does not treat an old substituted time as exact.
 
-- Backend uses `12:00 UT`
-- Chart response flags approximation
-- Notes warn that houses/Ascendant are approximate
+New calculations reject unknown or missing birth times and do not substitute noon.
+A user-provided known time of `12:00` or `00:00` is valid. A rejected update leaves the
+saved chart unchanged.
+
+Repeated local times still require an explicit UTC offset in the API. Offset selection
+in the input UI remains a release gate; see the
+[Profile calculation contract](../developer/profile-calculation-contract.md).
 
 ## Related pages
 

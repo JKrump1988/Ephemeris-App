@@ -1,13 +1,22 @@
 from datetime import datetime, timezone
+import math
+from threading import RLock
 from typing import Dict, List, Optional
 from zoneinfo import ZoneInfo
 
-import requests
 import swisseph as swe
-from timezonefinder import TimezoneFinder
 
+from birth_time import BirthTimeError, resolve_birth_time
+from ephemeris_runtime import (
+    EphemerisUnavailableError,
+    calculate_body,
+    calculation_metadata,
+    ephemeris_session,
+)
 
-tf = TimezoneFinder(in_memory=True)
+_LOCATION_LOCK = RLock()
+_timezone_finder = None
+
 
 SIGNS = [
     "Aries",
@@ -114,7 +123,7 @@ def sign_from_longitude(longitude: float) -> str:
 
 
 def degree_in_sign(longitude: float) -> float:
-    return round(longitude % 30, 2)
+    return longitude % 30
 
 
 def normalize(longitude: float) -> float:
@@ -140,59 +149,65 @@ def angular_distance(a: float, b: float) -> float:
 
 
 def decimal_hours(moment: datetime) -> float:
-    return moment.hour + moment.minute / 60 + moment.second / 3600
+    return moment.hour + moment.minute / 60 + (moment.second + moment.microsecond / 1_000_000) / 3600
 
 
-def build_utc_datetime(birth_date: str, birth_time: Optional[str], birth_time_known: bool, timezone_name: str):
-    if birth_time_known and birth_time:
-        local_dt = datetime.fromisoformat(f"{birth_date}T{birth_time}:00")
-        aware_local = local_dt.replace(tzinfo=ZoneInfo(timezone_name))
-        utc_dt = aware_local.astimezone(timezone.utc)
-        approximate = False
-    else:
-        utc_dt = datetime.fromisoformat(f"{birth_date}T12:00:00+00:00")
-        approximate = True
-    return utc_dt, approximate
+def build_utc_datetime(birth_date: str, birth_time: Optional[str], birth_time_known: bool, timezone_name: str, utc_offset: Optional[str] = None):
+    return resolve_birth_time(birth_date, birth_time, birth_time_known, timezone_name, utc_offset), False
 
 
 def planet_payload(name: str, longitude: float, speed: float, house: Optional[int]):
     return {
         "name": name,
-        "longitude": round(normalize(longitude), 4),
+        "longitude": normalize(longitude),
         "sign": sign_from_longitude(longitude),
         "degree": degree_in_sign(longitude),
         "retrograde": speed < 0,
+        "longitude_speed_deg_per_day": speed,
         "house": house,
     }
 
 
-def calculate_placements(jd_ut: float, cusps: Optional[List[float]] = None) -> Dict[str, dict]:
-    flags = swe.FLG_MOSEPH | swe.FLG_SPEED
+def calculate_placements(jd_ut: float, cusps: Optional[List[float]] = None, *, flags: int) -> Dict[str, dict]:
     placements = {}
     for name, code in PLANET_CODES:
-        values, _ = swe.calc_ut(jd_ut, code, flags)
+        values, returned_flags = calculate_body(jd_ut, code, name, flags)
         house = house_for_longitude(values[0], cusps) if cusps else None
         placements[name] = planet_payload(name, values[0], values[3], house)
+        placements[name].update({
+            "latitude": values[1],
+            "distance_au": values[2],
+            "latitude_speed_deg_per_day": values[4],
+            "distance_speed_au_per_day": values[5],
+            "calculation_flags": returned_flags,
+            "source": "calculated",
+        })
 
     south_longitude = normalize(placements["North Node"]["longitude"] + 180)
-    placements["South Node"] = planet_payload("South Node", south_longitude, 0.0, house_for_longitude(south_longitude, cusps) if cusps else None)
+    placements["South Node"] = planet_payload("South Node", south_longitude, placements["North Node"]["longitude_speed_deg_per_day"], house_for_longitude(south_longitude, cusps) if cusps else None)
+    placements["South Node"].update({"source": "derived", "derived_from": "North Node + 180 degrees"})
     return placements
 
 
 def calculate_houses(jd_ut: float, latitude: float, longitude: float):
-    cusps, ascmc = swe.houses_ex(jd_ut, latitude, longitude, b"P")
-    house_cusps = [round(cusp, 4) for cusp in cusps]
+    try:
+        cusps, ascmc = swe.houses_ex(jd_ut, latitude, longitude, b"P")
+    except swe.Error as exc:
+        raise BirthTimeError("Placidus houses are unavailable for this date and latitude; no alternative house system was substituted.") from exc
+    if len(cusps) != 12 or len(ascmc) < 2 or not all(math.isfinite(value) for value in (*cusps, *ascmc)):
+        raise EphemerisUnavailableError("The ephemeris returned invalid house cusps or angles.")
+    house_cusps = [normalize(cusp) for cusp in cusps]
     asc = ascmc[0]
     mc = ascmc[1]
     return {
         "cusps": house_cusps,
         "ascendant": {
-            "longitude": round(normalize(asc), 4),
+            "longitude": normalize(asc),
             "sign": sign_from_longitude(asc),
             "degree": degree_in_sign(asc),
         },
         "midheaven": {
-            "longitude": round(normalize(mc), 4),
+            "longitude": normalize(mc),
             "sign": sign_from_longitude(mc),
             "degree": degree_in_sign(mc),
         },
@@ -273,15 +288,15 @@ def chart_focus(placements: Dict[str, dict]) -> List[dict]:
     ]
 
 
-def build_transits(natal_placements: Dict[str, dict]) -> Dict[str, List[dict]]:
+def build_transits(natal_placements: Dict[str, dict], *, flags: int) -> dict:
     now = datetime.now(timezone.utc)
-    jd_now = swe.julday(now.year, now.month, now.day, decimal_hours(now))
-    flags = swe.FLG_MOSEPH | swe.FLG_SPEED
+    _, jd_now = swe.utc_to_jd(now.year, now.month, now.day, now.hour, now.minute, now.second + now.microsecond / 1_000_000, swe.GREG_CAL)
 
     transits = {}
     for name, code in TRANSIT_CODES:
-        values, _ = swe.calc_ut(jd_now, code, flags)
+        values, returned_flags = calculate_body(jd_now, code, name, flags)
         transits[name] = planet_payload(name, values[0], values[3], None)
+        transits[name]["calculation_flags"] = returned_flags
 
     transit_aspects = []
     watched_natal = ["Sun", "Moon", "Mercury", "Venus", "Mars", "Saturn", "Ascendant"]
@@ -312,7 +327,20 @@ def build_transits(natal_placements: Dict[str, dict]) -> Dict[str, List[dict]]:
     }
 
 
+def _timezone_for_location(latitude: float, longitude: float) -> Optional[str]:
+    # Reuse the in-memory dataset and serialize both initialization and lookup;
+    # the calculation-only path does not need this optional geocoding dependency.
+    global _timezone_finder
+    with _LOCATION_LOCK:
+        if _timezone_finder is None:
+            from timezonefinder import TimezoneFinder
+
+            _timezone_finder = TimezoneFinder(in_memory=True)
+        return _timezone_finder.timezone_at(lng=longitude, lat=latitude)
+
+
 def search_locations(query: str) -> List[dict]:
+    import requests
     response = requests.get(
         "https://nominatim.openstreetmap.org/search",
         params={"q": query, "format": "jsonv2", "limit": 6},
@@ -324,7 +352,7 @@ def search_locations(query: str) -> List[dict]:
     for item in response.json():
         latitude = float(item["lat"])
         longitude = float(item["lon"])
-        timezone_name = tf.timezone_at(lng=longitude, lat=latitude)
+        timezone_name = _timezone_for_location(latitude, longitude)
         if not timezone_name:
             continue
         address = item.get("address", {})
@@ -343,16 +371,30 @@ def search_locations(query: str) -> List[dict]:
 
 
 def generate_natal_chart(chart_input: dict) -> dict:
-    utc_dt, approximate = build_utc_datetime(
+    utc_dt, _ = build_utc_datetime(
         chart_input["birth_date"],
         chart_input.get("birth_time"),
         chart_input["birth_time_known"],
         chart_input["timezone"],
+        chart_input.get("utc_offset"),
+    )
+    for field, lower, upper in (("latitude", -90, 90), ("longitude", -180, 180)):
+        value = chart_input[field]
+        if isinstance(value, bool) or not isinstance(value, (int, float)) or not math.isfinite(value) or not lower <= value <= upper:
+            raise BirthTimeError(f"{field} must be a finite number from {lower} to {upper}.")
+    with ephemeris_session() as settings:
+        return _generate_natal_chart(chart_input, utc_dt, settings)
+
+
+def _generate_natal_chart(chart_input: dict, utc_dt: datetime, settings) -> dict:
+    jd_tt, jd_ut = swe.utc_to_jd(
+        utc_dt.year, utc_dt.month, utc_dt.day, utc_dt.hour, utc_dt.minute,
+        utc_dt.second + utc_dt.microsecond / 1_000_000, swe.GREG_CAL,
     )
 
-    jd_ut = swe.julday(utc_dt.year, utc_dt.month, utc_dt.day, decimal_hours(utc_dt))
     houses = calculate_houses(jd_ut, chart_input["latitude"], chart_input["longitude"])
-    placements = calculate_placements(jd_ut, houses["cusps"])
+    placements = calculate_placements(jd_ut, houses["cusps"], flags=settings.flags)
+    engine_metadata = calculation_metadata(settings, placements, jd_tt)
     placements["Ascendant"] = {
         "name": "Ascendant",
         **houses["ascendant"],
@@ -368,25 +410,30 @@ def generate_natal_chart(chart_input: dict) -> dict:
 
     aspects = calculate_aspects(placements)
     balance = calculate_balance(placements)
-    transits = build_transits(placements)
+    transits = build_transits(placements, flags=settings.flags)
 
     chart_ruler = SIGN_RULERS[placements["Ascendant"]["sign"]]
     saturn = placements["Saturn"]
     north_node = placements["North Node"]
     focus = chart_focus(placements)
 
-    note = (
-        "Birth time was unavailable, so Ephemeral used 12:00 UT. Ascendant and houses are approximate."
-        if approximate
-        else "Birth time was used to calculate houses and the Ascendant."
-    )
+    note = "The supplied birth time and timezone were validated before calculating the chart."
+    if settings.backend == "moshier":
+        note += " Positions use the explicitly selected Moshier backend, not external Swiss data files."
 
     return {
         "meta": {
             "utc_datetime": utc_dt.isoformat(),
             "local_timezone": chart_input["timezone"],
-            "approximate_time_used": approximate,
+            "birth_date": chart_input["birth_date"],
+            "birth_time": chart_input["birth_time"],
+            "utc_offset_seconds": int(utc_dt.astimezone(ZoneInfo(chart_input["timezone"])).utcoffset().total_seconds()),
+            "julian_day_ut1": jd_ut,
+            "julian_day_tt": jd_tt,
+            "time_conversion": "Swiss Ephemeris utc_to_jd; pre-1972 civil UTC is treated as UT1 by the library",
+            "approximate_time_used": False,
             "note": note,
+            "calculation_engine": engine_metadata,
         },
         "placements": placements,
         "houses": houses,

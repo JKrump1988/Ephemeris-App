@@ -1,0 +1,385 @@
+{
+  "reference_kind": "upstream_swetest_executable_agreement",
+  "limitation": "Same underlying Swiss Ephemeris astronomy library; not an independent astronomical accuracy validation. Values are decimal fields printed by the upstream executable.",
+  "source": {
+    "repository": "https://github.com/astrorigin/swisseph",
+    "commit": "696bda432298d482d27e67a0cf1238920301a7dd",
+    "swetest_source_git_blob_sha": "a8041e11d8ee779fda854e76852e940c631dde78",
+    "library_version": "2.10.03",
+    "executable_sha256": "0cecf9a2aaf600b4bbff6c57480ab0a48352e59a817b56d5745b0d06b88e28a6",
+    "build_command": "make -j2 swetest",
+    "binding_used_for_generation": null,
+    "external_data_files_used": []
+  },
+  "settings": {
+    "ephemeris": "Moshier",
+    "zodiac": "tropical",
+    "coordinates": "geocentric ecliptic of date",
+    "position_type": "apparent",
+    "time_input_scale": "UTC",
+    "house_system": "Placidus",
+    "calendar": "Gregorian",
+    "longitude_convention": "east_positive"
+  },
+  "proposed_comparison_tolerances": {
+    "angles_deg": 1e-06,
+    "longitude_speed_deg_per_day": 1e-06,
+    "distance_au": 2e-09
+  },
+  "cases": [
+    {
+      "id": "j2000_greenwich",
+      "input": {
+        "birth_date": "2000-01-01",
+        "birth_time": "12:00:00",
+        "timezone": "UTC",
+        "longitude": 0.0,
+        "latitude": 51.4779,
+        "birth_time_known": true,
+        "location_name": "Synthetic j2000_greenwich"
+      },
+      "swetest_args": [
+        "-b1.1.2000",
+        "-utc12:00:00",
+        "-p0123456789t",
+        "-fPlbRs",
+        "-g,",
+        "-head",
+        "-emos",
+        "-house0.0,51.4779,P"
+      ],
+      "placements": {
+        "Sun": {
+          "longitude": 280.3689239,
+          "latitude": 0.0002323,
+          "distance_au": 0.983327645,
+          "longitude_speed_deg_per_day": 1.0194321,
+          "retrograde": false
+        },
+        "Moon": {
+          "longitude": 223.3238248,
+          "latitude": 5.1708147,
+          "distance_au": 0.002689977,
+          "longitude_speed_deg_per_day": 12.0211821,
+          "retrograde": false
+        },
+        "Mercury": {
+          "longitude": 271.8892814,
+          "latitude": -0.9948256,
+          "distance_au": 1.415469501,
+          "longitude_speed_deg_per_day": 1.5562541,
+          "retrograde": false
+        },
+        "Venus": {
+          "longitude": 241.5658033,
+          "latitude": 2.0663479,
+          "distance_au": 1.137579406,
+          "longitude_speed_deg_per_day": 1.2090397,
+          "retrograde": false
+        },
+        "Mars": {
+          "longitude": 327.9633165,
+          "latitude": -1.0677829,
+          "distance_au": 1.849687456,
+          "longitude_speed_deg_per_day": 0.7756728,
+          "retrograde": false
+        },
+        "Jupiter": {
+          "longitude": 25.2530305,
+          "latitude": -1.2621728,
+          "distance_au": 4.621181401,
+          "longitude_speed_deg_per_day": 0.0407613,
+          "retrograde": false
+        },
+        "Saturn": {
+          "longitude": 40.3956389,
+          "latitude": -2.4448225,
+          "distance_au": 8.652796036,
+          "longitude_speed_deg_per_day": -0.0199448,
+          "retrograde": true
+        },
+        "Uranus": {
+          "longitude": 314.8092234,
+          "latitude": -0.6583329,
+          "distance_au": 20.727169246,
+          "longitude_speed_deg_per_day": 0.0503436,
+          "retrograde": false
+        },
+        "Neptune": {
+          "longitude": 303.1929814,
+          "latitude": 0.2349912,
+          "distance_au": 31.024527175,
+          "longitude_speed_deg_per_day": 0.0355701,
+          "retrograde": false
+        },
+        "Pluto": {
+          "longitude": 251.454709,
+          "latitude": 10.8552025,
+          "distance_au": 31.064390156,
+          "longitude_speed_deg_per_day": 0.0351529,
+          "retrograde": false
+        },
+        "North Node": {
+          "longitude": 123.9528952,
+          "latitude": 0.0,
+          "distance_au": 0.00244538,
+          "longitude_speed_deg_per_day": -0.0543821,
+          "retrograde": true
+        }
+      },
+      "cusps": [
+        24.2694308,
+        61.1442029,
+        82.0222264,
+        99.6124561,
+        119.0635,
+        147.7029493,
+        204.2694308,
+        241.1442029,
+        262.0222264,
+        279.6124561,
+        299.0635,
+        327.7029493
+      ],
+      "ascendant": 24.2694308,
+      "midheaven": 279.6124561,
+      "raw_output_sha256": "e49692cff77736bee0941cdf17d3e72abbcf457ab9aedaa2e8bdff30e883d566"
+    },
+    {
+      "id": "southern_latitude",
+      "input": {
+        "birth_date": "1984-06-01",
+        "birth_time": "06:15:00",
+        "timezone": "UTC",
+        "longitude": 151.2093,
+        "latitude": -33.8688,
+        "birth_time_known": true,
+        "location_name": "Synthetic southern_latitude"
+      },
+      "swetest_args": [
+        "-b1.6.1984",
+        "-utc06:15:00",
+        "-p0123456789t",
+        "-fPlbRs",
+        "-g,",
+        "-head",
+        "-emos",
+        "-house151.2093,-33.8688,P"
+      ],
+      "placements": {
+        "Sun": {
+          "longitude": 70.9333499,
+          "latitude": 5.44e-05,
+          "distance_au": 1.014201349,
+          "longitude_speed_deg_per_day": 0.9585585,
+          "retrograde": false
+        },
+        "Moon": {
+          "longitude": 90.2015064,
+          "latitude": 2.1175947,
+          "distance_au": 0.002538125,
+          "longitude_speed_deg_per_day": 13.5020604,
+          "retrograde": false
+        },
+        "Mercury": {
+          "longitude": 49.2927617,
+          "latitude": -2.515207,
+          "distance_au": 1.041402971,
+          "longitude_speed_deg_per_day": 1.5392117,
+          "retrograde": false
+        },
+        "Venus": {
+          "longitude": 66.9408403,
+          "latitude": -0.3717573,
+          "distance_au": 1.729866945,
+          "longitude_speed_deg_per_day": 1.2285445,
+          "retrograde": false
+        },
+        "Mars": {
+          "longitude": 224.0185965,
+          "latitude": -1.0861186,
+          "distance_au": 0.545483871,
+          "longitude_speed_deg_per_day": -0.246077,
+          "retrograde": true
+        },
+        "Jupiter": {
+          "longitude": 281.3733722,
+          "latitude": 0.1262881,
+          "distance_au": 4.333081116,
+          "longitude_speed_deg_per_day": -0.0932603,
+          "retrograde": true
+        },
+        "Saturn": {
+          "longitude": 221.050282,
+          "latitude": 2.5606522,
+          "distance_au": 8.974774958,
+          "longitude_speed_deg_per_day": -0.0599896,
+          "retrograde": true
+        },
+        "Uranus": {
+          "longitude": 251.5934857,
+          "latitude": 0.0346406,
+          "distance_au": 17.999366807,
+          "longitude_speed_deg_per_day": -0.041275,
+          "retrograde": true
+        },
+        "Neptune": {
+          "longitude": 270.5741074,
+          "latitude": 1.216538,
+          "distance_au": 29.304632585,
+          "longitude_speed_deg_per_day": -0.024921,
+          "retrograde": true
+        },
+        "Pluto": {
+          "longitude": 209.7020007,
+          "latitude": 17.2851157,
+          "distance_au": 29.085635098,
+          "longitude_speed_deg_per_day": -0.019268,
+          "retrograde": true
+        },
+        "North Node": {
+          "longitude": 66.5989638,
+          "latitude": 0.0,
+          "distance_au": 0.002579336,
+          "longitude_speed_deg_per_day": -0.0058875,
+          "retrograde": true
+        }
+      },
+      "cusps": [
+        241.4969277,
+        266.4474462,
+        288.6155811,
+        312.4110827,
+        341.8639466,
+        19.9157392,
+        61.4969277,
+        86.4474462,
+        108.6155811,
+        132.4110827,
+        161.8639466,
+        199.9157392
+      ],
+      "ascendant": 241.4969277,
+      "midheaven": 132.4110827,
+      "raw_output_sha256": "a778e320cc9a3278973e55f09efe4f8f3de1726f2359144bafe3216986039a3f"
+    },
+    {
+      "id": "synthetic_fold_late_instant",
+      "input": {
+        "birth_date": "2024-11-03",
+        "birth_time": "09:30:00",
+        "timezone": "UTC",
+        "longitude": -115.0,
+        "latitude": 36.0,
+        "birth_time_known": true,
+        "location_name": "Synthetic synthetic_fold_late_instant"
+      },
+      "swetest_args": [
+        "-b3.11.2024",
+        "-utc09:30:00",
+        "-p0123456789t",
+        "-fPlbRs",
+        "-g,",
+        "-head",
+        "-emos",
+        "-house-115.0,36.0,P"
+      ],
+      "placements": {
+        "Sun": {
+          "longitude": 221.4552449,
+          "latitude": -0.0001166,
+          "distance_au": 0.991949721,
+          "longitude_speed_deg_per_day": 1.0019883,
+          "retrograde": false
+        },
+        "Moon": {
+          "longitude": 242.1268049,
+          "latitude": -4.2953767,
+          "distance_au": 0.002672549,
+          "longitude_speed_deg_per_day": 12.2357363,
+          "retrograde": false
+        },
+        "Mercury": {
+          "longitude": 240.8214475,
+          "latitude": -2.1894275,
+          "distance_au": 1.241136064,
+          "longitude_speed_deg_per_day": 1.3836573,
+          "retrograde": false
+        },
+        "Venus": {
+          "longitude": 259.9814568,
+          "latitude": -1.8683836,
+          "distance_au": 1.160164958,
+          "longitude_speed_deg_per_day": 1.2000194,
+          "retrograde": false
+        },
+        "Mars": {
+          "longitude": 119.732132,
+          "latitude": 1.4733496,
+          "distance_au": 1.001316139,
+          "longitude_speed_deg_per_day": 0.3473214,
+          "retrograde": false
+        },
+        "Jupiter": {
+          "longitude": 80.2974921,
+          "latitude": -0.7160413,
+          "distance_au": 4.2527798,
+          "longitude_speed_deg_per_day": -0.0811046,
+          "retrograde": true
+        },
+        "Saturn": {
+          "longitude": 342.8227339,
+          "latitude": -2.1331635,
+          "distance_au": 9.094978241,
+          "longitude_speed_deg_per_day": -0.0211742,
+          "retrograde": true
+        },
+        "Uranus": {
+          "longitude": 55.8054965,
+          "latitude": -0.2654255,
+          "distance_au": 18.600563995,
+          "longitude_speed_deg_per_day": -0.0399911,
+          "retrograde": true
+        },
+        "Neptune": {
+          "longitude": 357.456911,
+          "latitude": -1.3189173,
+          "distance_au": 29.174665122,
+          "longitude_speed_deg_per_day": -0.0179691,
+          "retrograde": true
+        },
+        "Pluto": {
+          "longitude": 299.7616863,
+          "latitude": -3.2602755,
+          "distance_au": 35.318480261,
+          "longitude_speed_deg_per_day": 0.0107366,
+          "retrograde": false
+        },
+        "North Node": {
+          "longitude": 6.2139006,
+          "latitude": 0.0,
+          "distance_au": 0.002468055,
+          "longitude_speed_deg_per_day": -0.106116,
+          "retrograde": true
+        }
+      },
+      "cusps": [
+        163.977522,
+        189.5729165,
+        219.3914621,
+        252.1284694,
+        285.2005117,
+        316.1869925,
+        343.977522,
+        9.5729165,
+        39.3914621,
+        72.1284694,
+        105.2005117,
+        136.1869925
+      ],
+      "ascendant": 163.977522,
+      "midheaven": 72.1284694,
+      "raw_output_sha256": "6928484cbe7263b505d147cbb70cbe72bfdb1c665d04b05bea040ebe27b80ac2"
+    }
+  ]
+}

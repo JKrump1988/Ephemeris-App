@@ -8,14 +8,14 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { useAuth } from "@/context/AuthContext";
 import { api } from "@/lib/api";
+import { isValidBirthTime } from "@/lib/birthTime";
 
 
 export default function OnboardingPage() {
   const navigate = useNavigate();
   const { markHasChart } = useAuth();
   const [birthDate, setBirthDate] = useState("");
-  const [birthTime, setBirthTime] = useState("12:00");
-  const [birthTimeKnown, setBirthTimeKnown] = useState(true);
+  const [birthTime, setBirthTime] = useState("");
   const [locationQuery, setLocationQuery] = useState("");
   const [locationResults, setLocationResults] = useState([]);
   const [selectedLocation, setSelectedLocation] = useState(null);
@@ -47,13 +47,17 @@ export default function OnboardingPage() {
       toast.error("Birth date and a selected location are required.");
       return;
     }
+    if (!isValidBirthTime(birthTime)) {
+      toast.error("Enter a known birth time in 24-hour HH:MM format. Optional seconds may include up to six decimal places.");
+      return;
+    }
 
     setSaving(true);
     try {
       await api.post("/chart", {
         birth_date: birthDate,
-        birth_time: birthTimeKnown ? birthTime : null,
-        birth_time_known: birthTimeKnown,
+        birth_time: birthTime,
+        birth_time_known: true,
         location_name: selectedLocation.label,
         latitude: selectedLocation.latitude,
         longitude: selectedLocation.longitude,
@@ -75,7 +79,7 @@ export default function OnboardingPage() {
         <p className="text-[11px] uppercase tracking-[0.28em] text-primary" data-testid="onboarding-eyebrow">Chart intake</p>
         <h1 className="font-display text-5xl leading-[0.96] text-white md:text-6xl" data-testid="onboarding-title">Enter the sky coordinates of your story.</h1>
         <p className="max-w-xl text-base leading-8 text-slate-300" data-testid="onboarding-description">
-          Ephemeral uses your birth date, time, and location to calculate a natal chart from astronomical ephemeris logic. If your birth time is unknown, the system uses 12:00 UT and clearly marks house and rising placements as approximate.
+          Ephemeral uses your birth date, known birth time, and location to calculate a natal chart from astronomical ephemeris logic.
         </p>
       </div>
 
@@ -89,14 +93,25 @@ export default function OnboardingPage() {
 
             <div className="space-y-2">
               <label className="text-[11px] uppercase tracking-[0.24em] text-slate-400" htmlFor="birth-time">Birth time</label>
-              <Input className="h-12 border-white/10 bg-white/5 text-white disabled:opacity-40" data-testid="birth-time-input" disabled={!birthTimeKnown} id="birth-time" onChange={(event) => setBirthTime(event.target.value)} type="time" value={birthTime} />
+              <Input
+                aria-describedby="birth-time-help"
+                autoComplete="off"
+                className="h-12 border-white/10 bg-white/5 text-white placeholder:text-slate-500"
+                data-testid="birth-time-input"
+                id="birth-time"
+                onChange={(event) => setBirthTime(event.target.value)}
+                placeholder="07:20 or 07:20:27.123456"
+                required
+                spellCheck={false}
+                type="text"
+                value={birthTime}
+              />
             </div>
           </div>
 
-          <label className="flex items-center gap-3 border border-white/10 bg-white/5 px-4 py-3 text-sm text-slate-200" data-testid="unknown-birth-time-toggle">
-            <input checked={!birthTimeKnown} className="h-4 w-4 accent-[#D4AF37]" onChange={(event) => setBirthTimeKnown(!event.target.checked)} type="checkbox" />
-            I don't know my birth time — use 12:00 UT and mark ascendant/houses as approximate.
-          </label>
+          <p className="border border-white/10 bg-white/5 px-4 py-3 text-sm leading-7 text-slate-200" data-testid="birth-time-help" id="birth-time-help">
+            This version requires a known birth time. Enter hours and minutes in 24-hour format; include seconds and fractional seconds if recorded.
+          </p>
 
           <div className="space-y-3">
             <label className="text-[11px] uppercase tracking-[0.24em] text-slate-400" htmlFor="location-query">Birth location</label>
